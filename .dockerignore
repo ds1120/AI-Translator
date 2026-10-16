@@ -1,5 +1,7 @@
 .git
 .env
+.env.*
+config/application.properties
 **/target
 **/node_modules
 **/dist

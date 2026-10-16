@@ -13,7 +13,7 @@ import org.springframework.security.web.SecurityFilterChain;
 @Configuration
 public class AppConfig {
  @Bean HttpClient httpClient() { return HttpClient.newBuilder().connectTimeout(Duration.ofSeconds(3)).build(); }
- @Bean SecurityFilterChain security(HttpSecurity http) throws Exception {
+ @Bean @org.springframework.core.annotation.Order(2) SecurityFilterChain security(HttpSecurity http) throws Exception {
   return http.csrf(c -> c.ignoringRequestMatchers("/webhooks/line"))
    .authorizeHttpRequests(a -> a.requestMatchers("/webhooks/line", "/actuator/health").permitAll().anyRequest().denyAll())
    .sessionManagement(s -> s.sessionCreationPolicy(org.springframework.security.config.http.SessionCreationPolicy.STATELESS))
@@ -22,6 +22,7 @@ public class AppConfig {
  @Bean Settings settings(Environment e) { return new Settings(e); }
  public static class Settings {
   private final Environment e;
+  private final java.util.concurrent.locks.ReentrantReadWriteLock configurationLock=new java.util.concurrent.locks.ReentrantReadWriteLock();
   public Settings(Environment e) {
    this.e=e;
    if(!Set.of(Language.TH,Language.VI,Language.EN,Language.JA).contains(partnerLanguage())) throw new IllegalStateException("Partner language must be TH, VI, EN or JA");
@@ -52,6 +53,7 @@ public class AppConfig {
    if (secret().isBlank()) throw new IllegalStateException("LINE signing secret must not be empty");
   }
   public String get(String key,String fallback){return e.getProperty(key,fallback);}
+  public java.util.concurrent.locks.ReentrantReadWriteLock configurationLock(){return configurationLock;}
   public boolean mock(){return get("app.mode","mock").equals("mock");}
   public Language partnerLanguage(){
    try {return Language.valueOf(get("app.translation.partner-language","TH").strip().toUpperCase(Locale.ROOT));}

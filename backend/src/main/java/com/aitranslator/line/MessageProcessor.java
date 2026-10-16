@@ -18,6 +18,8 @@ public class MessageProcessor {
  private final EventMapper events;private final LanguageDetector detector;private final TranslationService translations;
  private final LineClient line;private final Settings settings;private final GroupMapper groups;private final MeterRegistry metrics;
  private final ConversationContextStore context;
+ private com.aitranslator.admin.TranslationAudit audit;private com.aitranslator.admin.AdminErrorLog errors;
+ @Autowired public void operations(com.aitranslator.admin.TranslationAudit audit,com.aitranslator.admin.AdminErrorLog errors){this.audit=audit;this.errors=errors;}
  public MessageProcessor(EventMapper events,LanguageDetector detector,TranslationService translations,LineClient line,Settings settings,GroupMapper groups,MeterRegistry metrics){
   this(events,detector,translations,line,settings,groups,metrics,new InMemoryConversationContextStore(settings));
  }
@@ -29,7 +31,7 @@ public class MessageProcessor {
  @Scheduled(fixedDelayString="${app.worker.delay-ms:200}")
  public void poll(){for(var event:events.pending())if(events.claim(event.eventId())==1)process(event);}
  private void process(StoredEvent e){
-  long start=System.nanoTime();String state="FAILED";boolean sending=false;boolean remember=false;
+  long start=System.nanoTime();String state="FAILED";boolean sending=false;boolean remember=false;boolean translationJob=false;String verification="UNVERIFIED";int attempts=0;
   try {
    String input=e.originalText().strip();
    boolean command=Set.of("/설정","/상태","/도움말").contains(input) || input.matches("(?s)^/(?:언어|기본언어|번역|검증|문맥)(?:\\s+.*)?$");
@@ -87,7 +89,9 @@ public class MessageProcessor {
     if(fresh(e))remaining=(int)Math.min(remaining,40000-Math.max(System.currentTimeMillis()-e.receivedAt(),System.currentTimeMillis()-e.eventTime()));
     if(remaining<1000){state="EXPIRED";return;}
     int limit=contextLimit(e.groupId());
+    translationJob=true;
     var result=translations.translate(new TranslationService.Request(e.originalText(),source,target,context.recent(e.groupId(),limit),Map.of("budget-ms",Integer.toString(remaining))));
+    verification=result.verified()?result.verificationStatus().name():"UNVERIFIED";attempts=result.attempts();
     text=VerificationFormatter.format(target,result,verificationDisplay(e.groupId()));
     remember=limit>0 && !result.blocked() && result.verificationStatus()!=com.aitranslator.verification.VerificationReport.Status.FAIL;
     metrics.counter("translation.verification","status",result.verified()?result.verificationStatus().name():"UNVERIFIED").increment();
@@ -104,9 +108,11 @@ public class MessageProcessor {
    state=sending?"UNKNOWN":"FAILED";
    // Do not log tokens, raw messages, identifiers, or upstream response bodies.
    log.warn("Translation processing failed stage={} cause={}",sending?"delivery":"translation",ex.getClass().getSimpleName());
+   if(errors!=null)errors.record(sending?"DELIVERY":"TRANSLATION",null,ex.getClass().getSimpleName());
   } finally {
    long elapsed=(System.nanoTime()-start)/1_000_000;
    events.complete(e.eventId(),state,elapsed);
+   if(translationJob && audit!=null)audit.record(e.eventId(),state,elapsed,verification,attempts);
    metrics.counter("translation.events","outcome",state).increment();
    metrics.timer("translation.processing").record(java.time.Duration.ofMillis(elapsed));
    log.info("Translation event completed outcome={} elapsedMs={}",state,elapsed);

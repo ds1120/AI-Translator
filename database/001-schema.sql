@@ -26,3 +26,15 @@ CREATE TABLE IF NOT EXISTS chat_quality_settings (
  verification_display VARCHAR(16) NOT NULL DEFAULT 'hidden',
  context_limit INT NULL
 );
+CREATE TABLE IF NOT EXISTS translation_runs (
+ event_id VARCHAR(128) PRIMARY KEY,
+ processed_at BIGINT NOT NULL,
+ outcome VARCHAR(20) NOT NULL,
+ elapsed_ms BIGINT NOT NULL,
+ verification_status VARCHAR(20) NOT NULL,
+ attempts INT NOT NULL
+);
+CREATE TABLE IF NOT EXISTS admin_ai_settings (
+ setting_key VARCHAR(128) PRIMARY KEY,
+ setting_value VARCHAR(1024) NOT NULL
+);

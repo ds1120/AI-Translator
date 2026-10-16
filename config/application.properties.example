@@ -26,3 +26,6 @@ app.context.ttl-seconds=600
 # app.verification.base-url=http://127.0.0.1:8083/v1
 # app.verification.model=your-verification-model
 # app.verification.key=
+# Administrator login. Empty password disables login. Use at least 12 characters.
+app.admin.username=admin
+app.admin.password=

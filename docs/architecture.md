@@ -1,4 +1,4 @@
-# Phase 2 구조
+# Phase 3 구조
 
 LINE → raw body HMAC 검증 → MyBatis DB 접수 → 200 OK → DB worker → 대화 설정·언어 감지·문맥 → TranslationService → 번역 Provider → ReverseTranslationChecker → VerificationProvider → 회신 포맷 → LineClient.
 
@@ -21,7 +21,7 @@ TranslationService와 검증·문맥 계층은 LINE에 의존하지 않는다. R
 
 ConversationContextStore 인터페이스의 기본 구현은 RAM이다. 성공적으로 회신한 원문만 최근 최대 10개, 기본 600초 보관한다. 입력 문맥은 총 4,000자 이하, 전체 저장소는 최대 1,000개 대화로 제한한다. 이벤트 ID 중복을 제거하며 번역문·역번역·명령어·봇 메시지는 넣지 않는다. 접근 시와 30초 주기 정리로 만료한다. 문맥 OFF·번역 OFF·언어 쌍 변경 시 해당 대화 문맥을 비운다. 재시작하면 문맥 원문은 사라지지만 설정은 DB에 남는다. Redis는 필요 없다.
 
-사용자의 후속 선택에 따라 설정 명령은 1:1 본인 또는 그룹 참여자 누구나 사용한다. 초기 지시서의 관리자 등록·권한 제한을 현재 명령에 적용하지 않는다. LINE 그룹 관리자 여부를 API에서 임의로 추정하지 않는다. 웹 관리 화면·인증은 Phase 3에서 구현하며 기존 React + TypeScript + Vite 계획을 유지한다.
+사용자의 후속 선택에 따라 설정 명령은 1:1 본인 또는 그룹 참여자 누구나 사용한다. 초기 지시서의 관리자 등록·권한 제한을 현재 명령에 적용하지 않는다. LINE 그룹 관리자 여부를 API에서 임의로 추정하지 않는다. 웹 화면은 React + TypeScript + Vite이며 관리자 세션과 CSRF 검증을 적용한다. LINE 설정 명령과 웹 관리자 권한은 별개다.
 
 ## 이벤트·전달 보장
 

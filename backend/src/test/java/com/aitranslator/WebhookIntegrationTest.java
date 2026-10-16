@@ -104,7 +104,7 @@ class WebhookIntegrationTest {
  }
  @Test void noUnauthenticatedAdminSurface()throws Exception {
   mvc.perform(get("/actuator/health")).andExpect(status().isOk());
-  mvc.perform(get("/api/admin/groups")).andExpect(status().isForbidden());
+  mvc.perform(get("/api/admin/conversations")).andExpect(status().isUnauthorized());
   mvc.perform(get("/actuator/metrics")).andExpect(status().isForbidden());
  }
  @Test void anyoneCanChangeOnlyTheirGroupAndTranslateBothWays()throws Exception {

@@ -1,16 +1,19 @@
-# AI-Translator · Phase 2
+# AI-Translator · Phase 3
 
 한국어 ↔ 선택 언어(태국어·베트남어·영어·일본어) LINE 1:1·그룹 자동 번역 백엔드. Java 21 / Spring Boot 3.5 / Maven / MyBatis / MariaDB.
-관리 화면은 **React + TypeScript + Vite**로 Phase 3에서 구현한다. Phase 1에는 관리자 UI/API가 없다.
+관리 화면은 **React + TypeScript + Vite**로 구현했다. `/admin/`에서 관리자 로그인 후 사용한다.
 
 Windows 설치 경로는 `C:\ai\project\AI-Translator`를 기준으로 설명한다. 처음 LINE 계정을 준비한다면 아래 [LINE 계정 생성부터 봇 연결까지](#line-계정-생성부터-봇-연결까지)를 순서대로 진행한다.
 
 ## 인증정보 없이 실행 (Mock)
 
-필수: **JDK 21** (`java -version`, `javac -version` 모두 21), Maven 3.9+, Python 3(웹훅 전송 스크립트 사용 시).
+필수: **JDK 21** (`java -version`, `javac -version` 모두 21), Maven 3.9+, Node.js/npm(관리자 UI 빌드), Python 3(웹훅 전송 스크립트 사용 시).
 
 ```powershell
-cd C:\ai\project\AI-Translator\backend
+cd C:\ai\project\AI-Translator\frontend
+npm ci
+npm run build
+cd ..\backend
 mvn clean verify
 mvn spring-boot:run
 ```
@@ -238,7 +241,7 @@ mvn -f backend/pom.xml clean verify
 java -jar backend/target/ai-translator-0.1.0.jar
 ```
 
-평소에는 `java -jar` 명령만 실행한다. 활성 프로필이 **qwen**, 포트가 **8090**인지 확인한다. 별도 PowerShell에서 `curl.exe http://localhost:8090/actuator/health`를 실행해 `{"status":"UP"}`을 확인한다. `/`의 403은 관리자 화면이 없는 현재 백엔드의 정상 설정이다.
+평소에는 `java -jar` 명령만 실행한다. 활성 프로필이 **qwen**, 포트가 **8090**인지 확인한다. 별도 PowerShell에서 `curl.exe http://localhost:8090/actuator/health`를 실행해 `{"status":"UP"}`을 확인한다. `/`는 차단되며 관리자 화면은 `/admin/`으로 접근한다.
 
 ### 6. Caddy로 공개 HTTPS 연결
 
@@ -252,7 +255,7 @@ LINE → https://dsss.mooo.com/webhooks/line
 현재 Caddy 설정 파일은 `C:\ai\caddy\Caddyfile`이며 Git 저장소 밖에 있다. 기존 `dsss.mooo.com` 블록에 다음 경로 처리가 들어 있다. 다른 서비스의 `/v1`과 기본 화면 처리도 있으므로 전체 설정을 아래 예제로 덮어쓰지 않는다.
 
 ```caddyfile
-@translator path /webhooks/line /actuator/health
+@translator path /webhooks/line /actuator/health /admin /admin/* /api/admin/*
 handle @translator {
     reverse_proxy 127.0.0.1:8090
 }
@@ -358,11 +361,11 @@ MariaDB에는 `ai_translator` DB와 사용자 권한을 먼저 생성한다. 테
 - DB 접수 완료 후 200, 별도 worker에서 번역/회신. DB 오류는 5xx.
 - 한국어/태국어/베트남어/영어/일본어를 설정된 언어 쌍으로 번역. 쌍 밖의 문자 입력은 대화의 기본언어가 있으면 해당 언어로 번역하며, 미설정이면 무시한다. 감지 한계는 위 안내 참고. 미지원 명령어·봇 자신은 무시.
 - webhookEventId PK 중복 방지 (MariaDB에서 재시작 이후에도 7일 보존).
-- 역번역·의미 검증·최대 1회 재번역, 대화별 문맥과 검증 표시 설정 지원. 관리자 웹 인증·관리자 등록은 미구현. 1:1은 각 사용자가, 그룹은 참여자 누구나 해당 대화의 설정을 변경 가능.
+- 역번역·의미 검증·최대 1회 재번역, 대화별 문맥과 검증 표시 설정 지원. 관리자 웹은 별도 계정으로 로그인한다. 1:1은 각 사용자가, 그룹은 참여자 누구나 해당 대화의 설정을 변경 가능.
 - LINE/AI 실패는 상태/안전한 로그로 기록. 불확실한 전달은 UNKNOWN이며 자동 재전송하지 않는다.
 - 기본 Push 비활성. 비용을 이해한 후 `LINE_PUSH_ENABLED=true`일 때만 만료 Reply 대신 Push. Reply 실패 후 무조건 Push하지 않는다.
 - DB 작업 원문/토큰은 완료 시 삭제. 문맥 ON이면 성공한 원문은 RAM에 제한된 개수·만료 시간으로 보관하며 `/문맥 0`으로 지운다. 원문 로그 없음. API 호출 횟수·실패·검증 상태·처리 시간은 내부 Micrometer 지표로 기록.
-- 관리자 인증/UI가 도입되기 전까지 health/webhook 이외 모든 HTTP 접근은 차단한다.
+- 관리자 API는 세션 인증과 CSRF 검증을 적용한다. 미허용 경로는 차단한다.
 - 단일 순차 worker MVP라 대규모 트래픽 SLA를 보장하지 않는다. 외부 API 응답 지연/실패와 정확도는 별도 실계정 검증이 필요하다.
 
 [구조·오류 정책](docs/architecture.md) / [검증 기록](docs/validation.md).
@@ -377,3 +380,43 @@ mvn clean verify
 서명 누락/위조/본문 변조, LINE Verify 이벤트, 한↔태 회신, 동시 중복 웹훅, 개인정보 제거, 다른 언어·봇·그룹 설정·오래된 토큰, AI 실패, 외부 HTTP Provider, LINE 요청 형식 및 호출 횟수를 자동 검증한다. 실제 LINE 채널이나 유료 AI 호출 없이 실행한다.
 
 Phase 2 테스트에는 숫자 왜곡, FAIL 후 단 한 번 재번역, 위험 후보 차단, 검증 서버 오류·잘못된 JSON·역번역 언어 오류, 문맥 분리·중복·만료·OFF, 검증 표시와 번역 ON/OFF 명령도 포함한다. 실제 Qwen 소규모 평가는 별도 명령으로 실행하며 [품질 가이드](docs/phase2-quality.md)에 안내한다.
+
+## Phase 3 — 관리자 운영 콘솔
+
+새 JAR 적용 후 **https://dsss.mooo.com/admin/** 또는 `http://localhost:8090/admin/`에서 사용한다.
+
+Git에서 제외된 `config/application.properties`에 계정을 설정한다. 비밀번호는 12자 이상이며, 비어 있으면 로그인이 비활성화된다. 로컬에 자동 생성된 값이 있으면 해당 값을 사용한다.
+
+```properties
+app.admin.username=admin
+app.admin.password=직접_정한_충분히_긴_비밀번호
+```
+
+- 대시보드: 최근 7일 번역 건수, 전송 상태, 처리 시간, 검증 결과와 대기열. 새 버전부터 집계하며 원문·번역문은 통계에 저장하지 않는다.
+- 대화 관리: 1:1·그룹의 번역 ON/OFF, 언어 쌍, 기본언어, 검증 표시, 문맥 개수와 초기화.
+- AI 설정: 공급자·모델·API 주소·제한 시간을 DB에 저장한다. 재시작 후에도 파일의 해당 값보다 우선한다. 키와 검증 전용 모델은 설정 파일에서 관리한다. 처리 중에는 변경을 잠시 거부한다.
+- 테스트 번역: 번역·역번역·의미 검증을 실행한다. LINE 전송이나 대화 문맥 저장, 운영 통계 집계는 하지 않는다.
+- 오류 로그: HTTP 상태·단계·예외 종류만 최근 200건 RAM에 보관한다. 재시작하면 초기화되며 원문·토큰·응답 본문은 노출하지 않는다.
+
+관리 세션은 30분이다. 여러 관리자 계정을 등록하는 화면은 현재 범위에 포함하지 않는다.
+
+### 빌드와 적용
+
+Node.js와 npm이 필요하다. 실행 중인 봇을 Ctrl+C로 종료한 후 프로젝트 루트에서 실행한다.
+
+```powershell
+.\scripts\build.ps1
+java -jar backend\target\ai-translator-0.1.0.jar
+```
+
+이번에 실행 중인 서버를 유지한 채 준비한 산출물은 다음으로 적용한다.
+
+```powershell
+# 기존 서버를 Ctrl+C로 종료한 뒤
+Copy-Item backend\target\language-build\target\ai-translator-0.1.0.jar backend\target\ai-translator-0.1.0.jar -Force
+java -jar backend\target\ai-translator-0.1.0.jar
+```
+
+Docker는 `.env`의 `ADMIN_USERNAME`, `ADMIN_PASSWORD`를 사용하며 프런트엔드를 빌드에 포함한다. 개발 방법은 [frontend/README.md](frontend/README.md)를 참고한다.
+
+![관리자 대시보드 — Mock 테스트 환경](docs/admin-dashboard.png)

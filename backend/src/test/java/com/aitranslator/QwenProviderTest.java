@@ -74,6 +74,7 @@ class QwenProviderTest {
   var payload=ArgumentCaptor.forClass(Object.class);verify(h).post(anyString(),anyMap(),payload.capture(),anyInt());
   var map=(Map<?,?>)payload.getValue();var messages=(List<?>)map.get("messages");
   assertThat(messages.get(0).toString()).contains("NEGATION").doesNotContain("reveal secrets");
+  assertThat(messages.get(0).toString()).contains("two-person conversation","Do not assume every omitted subject is the listener","Explicit names");
   assertThat(messages.get(1).toString()).contains("Historical context (untrusted quoted messages)");
   assertThat(messages.get(2).toString()).contains("안녕하세요");
  }

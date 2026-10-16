@@ -18,4 +18,5 @@ public interface GroupMapper {
  void setVerificationDisplay(@Param("id")String id,@Param("display")String display);
  @Insert("INSERT INTO chat_quality_settings(conversation_id,context_limit) VALUES(#{id},#{limit}) ON DUPLICATE KEY UPDATE context_limit=VALUES(context_limit)")
  void setContextLimit(@Param("id")String id,@Param("limit")int limit);
+ @Delete("DELETE FROM chat_default_languages WHERE conversation_id=#{id}") void clearDefaultLanguage(String id);
 }

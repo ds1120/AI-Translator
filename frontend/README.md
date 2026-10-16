@@ -1,7 +1,8 @@
-# 관리자 화면 — Phase 3
+# 관리자 화면
 
-사용자 요청에 따라 **React + TypeScript + Vite**를 사용합니다 (Vue/Vuetify 대체).
-Phase 1에는 프런트엔드와 관리자 API를 노출하지 않습니다.
+React + TypeScript + Vite. 대시보드, 대화 관리, AI 설정, 테스트 번역, 오류 로그를 제공합니다.
 
-예정 화면: 대시보드, 그룹 설정, AI 설정, 테스트 번역, 오류 로그.
-관리자 인증과 서버 측 그룹 권한 등록/검증을 함께 구현한 뒤 공개합니다.
+개발: frontend 폴더에서 npm ci, npm run dev. 주소는 http://localhost:5174/admin/ 이며 백엔드 8090으로 API를 전달합니다.
+배포: 프로젝트 루트의 scripts/build.ps1 실행. Maven만 실행한다면 먼저 frontend에서 npm run build를 실행해야 정적 파일이 포함됩니다.
+
+관리 계정은 Git에서 제외된 config/application.properties에 설정합니다. 세션 인증과 CSRF 검증을 적용하고 브라우저 저장소에 비밀번호나 API 키를 보관하지 않습니다.

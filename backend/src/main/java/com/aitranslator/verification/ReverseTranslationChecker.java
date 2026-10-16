@@ -7,11 +7,13 @@ import org.springframework.stereotype.Component;
 @Component
 public class ReverseTranslationChecker {
  private final VerificationProvider provider;
- public ReverseTranslationChecker(VerificationProvider provider){this.provider=provider;}
+ private final com.aitranslator.admin.AdminErrorLog errors;
+ public ReverseTranslationChecker(VerificationProvider provider){this(provider,null);}
+ @org.springframework.beans.factory.annotation.Autowired public ReverseTranslationChecker(VerificationProvider provider,com.aitranslator.admin.AdminErrorLog errors){this.provider=provider;this.errors=errors;}
  public VerificationReport check(Request original,String translation,long deadlineNanos){
   VerificationReport report;
   try {report=provider.verify(original,translation,deadlineNanos);}
-  catch(RuntimeException ex){return VerificationReport.unavailable(provider.model());}
+  catch(RuntimeException ex){if(errors!=null)errors.record("VERIFICATION",null,ex.getClass().getSimpleName());return VerificationReport.unavailable(provider.model());}
   if(!report.completed())return report;
   var source=numbers(original.text());var reverse=numbers(report.reverseTranslation());
   if(source.equals(reverse))return report;

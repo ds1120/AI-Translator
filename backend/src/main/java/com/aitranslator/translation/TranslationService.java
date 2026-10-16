@@ -17,6 +17,10 @@ public class TranslationService {
   public Result(String text,String model,long millis){this(text,model,millis,"",VerificationReport.Status.PASS,List.of(),"",1,false,false);}
  }
  public Result translate(Request request) {
+  if(settings==null)return translateInternal(request);
+  var lock=settings.configurationLock().readLock();lock.lock();try{return translateInternal(request);}finally{lock.unlock();}
+ }
+ private Result translateInternal(Request request) {
   if(request.text()==null || request.text().isBlank() || request.text().length()>5000 || request.source()==null || request.target()==null
    || request.source()==request.target() || request.target()==Language.AUTO)
    throw new IllegalArgumentException("Invalid translation request");

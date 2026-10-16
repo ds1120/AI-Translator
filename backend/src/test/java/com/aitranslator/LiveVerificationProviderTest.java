@@ -38,4 +38,11 @@ class LiveVerificationProviderTest {
   assertThatThrownBy(()->new LiveVerificationProvider(http,settings()).verify(request(),"candidate",System.nanoTime()+30_000_000_000L)).hasMessageContaining("language mismatch");
   verify(http,times(1)).post(anyString(),anyMap(),any(),anyInt());
  }
+ @Test void recognizesParticipantRoleReversalAsDangerous()throws Exception {
+  var http=mock(JsonHttp.class);when(http.parse(anyString())).thenAnswer(call->json.readTree((String)call.getArgument(0)));
+  when(http.post(anyString(),anyMap(),any(),anyInt())).thenReturn(response("너는 지금 출발할 거야","stop"),response("{\"status\":\"FAIL\",\"dangerous\":true,\"issues\":[\"PARTICIPANT\"]}","stop"));
+  var request=new TranslationService.Request("지금 출발할게",Language.KO,Language.EN,List.of(),Map.of());
+  var report=new LiveVerificationProvider(http,settings()).verify(request,"You are leaving now.",System.nanoTime()+30_000_000_000L);
+  assertThat(report.warnings()).contains("PARTICIPANT");assertThat(report.dangerous()).isTrue();
+ }
 }
