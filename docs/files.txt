@@ -1,11 +1,14 @@
 .dockerignore
 .env.example
+.env.qwen.example
 .gitignore
 README.md
 backend/pom.xml
 backend/src/main/java/com/aitranslator/AiTranslatorApplication.java
 backend/src/main/java/com/aitranslator/ai/ExternalLlmProvider.java
+backend/src/main/java/com/aitranslator/ai/LocalQwenProvider.java
 backend/src/main/java/com/aitranslator/ai/MockTranslationProvider.java
+backend/src/main/java/com/aitranslator/ai/OpenAiChatClient.java
 backend/src/main/java/com/aitranslator/ai/TranslationProvider.java
 backend/src/main/java/com/aitranslator/common/JsonHttp.java
 backend/src/main/java/com/aitranslator/config/AppConfig.java
@@ -22,10 +25,12 @@ backend/src/main/java/com/aitranslator/translation/Language.java
 backend/src/main/java/com/aitranslator/translation/LanguageDetector.java
 backend/src/main/java/com/aitranslator/translation/TranslationService.java
 backend/src/main/resources/application-mock.yml
+backend/src/main/resources/application-qwen.yml
 backend/src/main/resources/application.yml
 backend/src/main/resources/schema.sql
 backend/src/test/java/com/aitranslator/LanguageDetectorTest.java
 backend/src/test/java/com/aitranslator/ProviderAndDeliveryTest.java
+backend/src/test/java/com/aitranslator/QwenProviderTest.java
 backend/src/test/java/com/aitranslator/WebhookIntegrationTest.java
 database/001-schema.sql
 docker-compose.yml
@@ -36,6 +41,7 @@ docs/files.txt
 docs/line-setup.md
 docs/railway-deploy.md
 docs/validation.md
+docs/windows-qwen.md
 frontend/README.md
 railway.json
 scripts/mock-webhook.py

@@ -18,7 +18,7 @@ services:
       context: .
       dockerfile: docker/Dockerfile
     environment:
-      SPRING_PROFILES_ACTIVE: live
+      SPRING_PROFILES_ACTIVE: ${SPRING_PROFILES_ACTIVE:-live}
       SERVER_ADDRESS: 0.0.0.0
       DB_URL: jdbc:mariadb://database:3306/ai_translator
       DB_USER: ai_translator
@@ -27,8 +27,9 @@ services:
       LINE_CHANNEL_ACCESS_TOKEN: ${LINE_CHANNEL_ACCESS_TOKEN:?Set LINE_CHANNEL_ACCESS_TOKEN}
       LINE_BOT_USER_ID: ${LINE_BOT_USER_ID:-}
       LINE_PUSH_ENABLED: ${LINE_PUSH_ENABLED:-false}
+      AI_PROVIDER: ${AI_PROVIDER:-external}
       AI_BASE_URL: ${AI_BASE_URL:-https://api.openai.com/v1}
-      AI_API_KEY: ${AI_API_KEY:?Set AI_API_KEY}
+      AI_API_KEY: ${AI_API_KEY:-}
       AI_MODEL: ${AI_MODEL:-gpt-4.1-mini}
       AI_TIMEOUT_SECONDS: ${AI_TIMEOUT_SECONDS:-15}
     depends_on:

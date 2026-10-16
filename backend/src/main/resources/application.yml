@@ -38,6 +38,7 @@ app:
     bot-user-id: ${LINE_BOT_USER_ID:}
     push-enabled: ${LINE_PUSH_ENABLED:false}
   ai:
+    provider: ${AI_PROVIDER:external}
     base-url: ${AI_BASE_URL:https://api.openai.com/v1}
     key: ${AI_API_KEY:}
     model: ${AI_MODEL:gpt-4.1-mini}

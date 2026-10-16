@@ -1,5 +1,6 @@
 package com.aitranslator.config;
 import java.time.Duration;
+import java.util.Set;
 import java.net.URI;
 import java.net.http.HttpClient;
 import org.springframework.context.annotation.Bean;
@@ -24,9 +25,16 @@ public class AppConfig {
    if (!get("app.mode","mock").matches("mock|live")) throw new IllegalStateException("app.mode must be mock or live");
    if (timeout()<1 || timeout()>20) throw new IllegalStateException("AI timeout must be 1..20 seconds");
    if (!mock()) {
-    for (String key : new String[]{"app.line.secret","app.line.token","app.ai.key"})
+    if (!provider().matches("external|local-qwen")) throw new IllegalStateException("Unknown AI provider");
+    for (String key : new String[]{"app.line.secret","app.line.token"})
      if (get(key, "").isBlank()) throw new IllegalStateException("Missing required setting: " + key);
-    if (!URI.create(aiBase()).getScheme().equals("https")) throw new IllegalStateException("External AI requires HTTPS");
+    if (provider().equals("external") && get("app.ai.key", "").isBlank()) throw new IllegalStateException("Missing required setting: app.ai.key");
+    URI uri=URI.create(aiBase());
+    boolean loopback=Set.of("localhost","127.0.0.1","[::1]","::1").contains(uri.getHost()==null?"":uri.getHost());
+    boolean secure="https".equals(uri.getScheme());
+    if (uri.getHost()==null || uri.getUserInfo()!=null || uri.getQuery()!=null || uri.getFragment()!=null
+     || (!secure && !(provider().equals("local-qwen") && loopback && "http".equals(uri.getScheme()))))
+     throw new IllegalStateException("AI requires HTTPS; local Qwen may use loopback HTTP");
    }
    if (secret().isBlank()) throw new IllegalStateException("LINE signing secret must not be empty");
   }
@@ -35,6 +43,7 @@ public class AppConfig {
   public String secret(){return get("app.line.secret","");}
   public String token(){return get("app.line.token","");}
   public String aiBase(){return get("app.ai.base-url","https://api.openai.com/v1");}
+  public String provider(){return get("app.ai.provider","external");}
   public String model(){return get("app.ai.model","gpt-4.1-mini");}
   public int timeout(){return Integer.parseInt(get("app.ai.timeout-seconds","15"));}
   public boolean push(){return Boolean.parseBoolean(get("app.line.push-enabled","false"));}

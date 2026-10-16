@@ -2,7 +2,7 @@
 
 LINE → raw body HMAC 검증 → MyBatis DB 접수 → 200 OK → DB worker → 언어 감지 → TranslationService → TranslationProvider → LineClient.
 
-TranslationService와 TranslationProvider는 LINE SDK에 의존하지 않는다. Request에는 문맥/옵션 확장 필드를 두었으나 Phase 1에서는 사용하지 않는다. 역번역·검증 상태·문맥 저장·관리자 명령·로컬 Qwen은 미구현이며 Phase 2 이후 추가한다. React + TypeScript + Vite UI는 Phase 3이다.
+TranslationService와 TranslationProvider는 LINE SDK에 의존하지 않는다. Request에는 문맥/옵션 확장 필드를 두었으나 Phase 1에서는 사용하지 않는다. 역번역·검증 상태·문맥 저장·관리자 명령은 미구현이며 Phase 2 이후 추가한다. 로컬 Qwen은 OpenAI 호환 API용 LocalQwenProvider로 연결한다. React + TypeScript + Vite UI는 Phase 3이다.
 
 DB 큐로 접수 이후 재시작되어도 PENDING 작업은 남는다. 동일 webhookEventId는 PK로 7일간 차단한다. PROCESSING을 획득한 작업은 자동 재전송하지 않는다. 외부 전달과 DB 변경은 원자적이지 않아 네트워크 단절/프로세스 종료 시 exactly-once를 보장할 수 없다. 미확정 전달은 UNKNOWN으로 남겨 중복 회신보다 보수적인 전달 정책을 택한다. 10분 이상 중단된 PROCESSING도 UNKNOWN으로 정리한다. webhook DB 접수 실패는 5xx이며 LINE의 redelivery 설정이 필요하다.
 

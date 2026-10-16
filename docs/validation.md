@@ -13,3 +13,11 @@
 실제 LINE/유료 AI 인증정보가 없어 실계정 메시지 전송 및 번역 품질은 아직 검증하지 않았다. Docker Compose 전체 서비스 이미지 빌드/기동은 미실행이며 MariaDB 컨테이너와 Java JAR를 개별 실행해 연동 검증했다. 관리자 화면은 Phase 3 예정이며 React + TypeScript + Vite로 변경했다.
 
 클라우드 환경에서 별도 JDK/Maven을 준비했다. 사용자 Windows에 자동 설치하거나 실행한 것은 아니다. 서버 프로세스와 임시 환경은 세션 종료 시 유지되지 않을 수 있다.
+
+## Qwen 연결 추가 검증
+
+- `LocalQwenProvider` 추가 후 `mvn verify`: **24개 테스트 모두 통과**, BUILD SUCCESS.
+- Qwen 무인증/Thinking 비활성 요청, 추론 태그 제거·미완결/출력 잘림 차단, Provider 단일 선택, 외부 HTTP 제한을 검증.
+- Qwen Compose 환경변수 보간 검사 통과.
+- 제공된 실제 API에서 모델 목록(Qwen3-14B), 한국어→태국어 및 태국어→한국어 예문 응답 HTTP 200 확인.
+- LINE 실계정 전달/집 PC 서버 실행/공개 Webhook 프록시는 아직 미검증.

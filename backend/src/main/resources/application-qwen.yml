@@ -1,0 +1,6 @@
+app:
+  mode: live
+  ai:
+    provider: local-qwen
+    base-url: ${AI_BASE_URL:https://dsss.mooo.com/v1}
+    model: ${AI_MODEL:Qwen3-14B}
