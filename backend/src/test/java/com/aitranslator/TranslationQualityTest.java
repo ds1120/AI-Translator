@@ -53,7 +53,9 @@ class TranslationQualityTest {
   var result=new TranslationService.Result("candidate","model",10,"역번역",VerificationReport.Status.PASS,List.of(),"checker",1,false,true);
   assertThat(VerificationFormatter.format(Language.TH,result,"all")).isEqualTo("🇹🇭 candidate\n\n✅ 역번역");assertThat(VerificationFormatter.format(Language.TH,result,"warnings")).isEqualTo("🇹🇭 candidate");assertThat(VerificationFormatter.format(Language.TH,result,"hidden")).isEqualTo("🇹🇭 candidate");
   var warning=new TranslationService.Result("candidate","model",10,"역번역",VerificationReport.Status.WARNING,List.of("NUMBER"),"checker",1,false,true);
-  assertThat(VerificationFormatter.format(Language.TH,warning,"warnings")).isEqualTo("🇹🇭 candidate\n\n⚠️ 역번역\n숫자");
+  assertThat(VerificationFormatter.format(Language.TH,warning,"warnings")).isEqualTo("🇹🇭 candidate\n\n⚠️ 역번역\n(숫자)");
+  var reasons=new TranslationService.Result("candidate","model",10,"역번역",VerificationReport.Status.WARNING,List.of("OMISSION","ADDITION"),"checker",1,false,true);
+  assertThat(VerificationFormatter.format(Language.TH,reasons,"all")).isEqualTo("🇹🇭 candidate\n\n⚠️ 역번역\n(의미누락, 정보추가)");
  }
  @Test void shortRemainingBudgetSkipsRetry(){
   when(provider.translate(any())).thenReturn("candidate");when(checker.check(any(),anyString(),anyLong())).thenReturn(report(VerificationReport.Status.FAIL,true));
