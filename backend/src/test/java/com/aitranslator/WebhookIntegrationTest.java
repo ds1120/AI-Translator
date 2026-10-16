@@ -218,7 +218,7 @@ class WebhookIntegrationTest {
  @Test void qualityCommandsAndTranslationToggleAreConversationScoped()throws Exception {
   postBody(directBody("quality-display","alice","/검증 전체"));finished("quality-display","SENT");
   postBody(directBody("quality-first","alice","안녕하세요"));finished("quality-first","SENT");
-  assertThat(line.messages().getLast().text()).contains("✅","🔄 안녕하세요").doesNotContain("검증:","PASS","역번역:");
+  assertThat(line.messages().getLast().text()).contains("✅ 안녕하세요").doesNotContain("검증:","PASS","역번역:","🔄");
   assertThat(context.recent("alice",10)).containsExactly("안녕하세요");
   postBody(directBody("context-off","alice","/문맥 0"));finished("context-off","SENT");
   assertThat(context.recent("alice",10)).isEmpty();

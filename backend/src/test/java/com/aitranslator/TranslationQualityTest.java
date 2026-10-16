@@ -51,9 +51,9 @@ class TranslationQualityTest {
  }
  @Test void displayModesAffectPresentationOnly(){
   var result=new TranslationService.Result("candidate","model",10,"역번역",VerificationReport.Status.PASS,List.of(),"checker",1,false,true);
-  assertThat(VerificationFormatter.format(Language.TH,result,"all")).isEqualTo("🇹🇭 candidate\n\n✅\n🔄 역번역");assertThat(VerificationFormatter.format(Language.TH,result,"warnings")).doesNotContain("🔄");assertThat(VerificationFormatter.format(Language.TH,result,"hidden")).isEqualTo("🇹🇭 candidate");
+  assertThat(VerificationFormatter.format(Language.TH,result,"all")).isEqualTo("🇹🇭 candidate\n\n✅ 역번역");assertThat(VerificationFormatter.format(Language.TH,result,"warnings")).isEqualTo("🇹🇭 candidate");assertThat(VerificationFormatter.format(Language.TH,result,"hidden")).isEqualTo("🇹🇭 candidate");
   var warning=new TranslationService.Result("candidate","model",10,"역번역",VerificationReport.Status.WARNING,List.of("NUMBER"),"checker",1,false,true);
-  assertThat(VerificationFormatter.format(Language.TH,warning,"warnings")).isEqualTo("🇹🇭 candidate\n\n⚠️ 숫자\n🔄 역번역");
+  assertThat(VerificationFormatter.format(Language.TH,warning,"warnings")).isEqualTo("🇹🇭 candidate\n\n⚠️ 역번역\n숫자");
  }
  @Test void shortRemainingBudgetSkipsRetry(){
   when(provider.translate(any())).thenReturn("candidate");when(checker.check(any(),anyString(),anyLong())).thenReturn(report(VerificationReport.Status.FAIL,true));

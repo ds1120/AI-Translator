@@ -12,11 +12,11 @@ public final class VerificationFormatter {
   boolean failure=result.verificationStatus()==VerificationReport.Status.FAIL || result.warnings().contains("UNAVAILABLE");
   if(show || failure){
    text+="\n\n"+switch(result.verificationStatus()){case PASS -> "✅";case WARNING -> "⚠️";case FAIL -> "❌";};
-   if(!result.warnings().isEmpty())text+=" "+String.join(", ",result.warnings().stream().distinct().map(code->LABELS.getOrDefault(code,"확인 필요")).toList());
    if(show && !result.reverseTranslation().isBlank()){
     String reverse=result.reverseTranslation();if(reverse.length()>800)reverse=reverse.substring(0,800)+"…";
-    text+="\n🔄 "+reverse;
+    text+=" "+reverse;
    }
+   if(!result.warnings().isEmpty())text+="\n"+String.join(", ",result.warnings().stream().distinct().map(code->LABELS.getOrDefault(code,"확인 필요")).toList());
    if(!result.verified())text+="\n검증을 완료하지 못한 번역입니다.";
   }
   if(text.length()>4900)return "⚠️ 검증 정보를 포함한 번역문이 너무 깁니다. 원문을 나눠 다시 보내주세요.";
