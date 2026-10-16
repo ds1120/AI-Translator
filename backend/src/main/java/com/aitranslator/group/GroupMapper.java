@@ -10,4 +10,12 @@ public interface GroupMapper {
  @Select("SELECT default_language FROM chat_default_languages WHERE conversation_id=#{id}") String defaultLanguage(String id);
  @Insert("INSERT INTO chat_default_languages(conversation_id,default_language) VALUES(#{id},#{language}) ON DUPLICATE KEY UPDATE default_language=VALUES(default_language)")
  void setDefaultLanguage(@Param("id")String id,@Param("language")String language);
+ @Update("UPDATE chat_groups SET translation_enabled=#{enabled} WHERE group_id=#{id}")
+ void setEnabled(@Param("id")String id,@Param("enabled")boolean enabled);
+ @Select("SELECT verification_display FROM chat_quality_settings WHERE conversation_id=#{id}") String verificationDisplay(String id);
+ @Select("SELECT context_limit FROM chat_quality_settings WHERE conversation_id=#{id}") Integer contextLimit(String id);
+ @Insert("INSERT INTO chat_quality_settings(conversation_id,verification_display) VALUES(#{id},#{display}) ON DUPLICATE KEY UPDATE verification_display=VALUES(verification_display)")
+ void setVerificationDisplay(@Param("id")String id,@Param("display")String display);
+ @Insert("INSERT INTO chat_quality_settings(conversation_id,context_limit) VALUES(#{id},#{limit}) ON DUPLICATE KEY UPDATE context_limit=VALUES(context_limit)")
+ void setContextLimit(@Param("id")String id,@Param("limit")int limit);
 }

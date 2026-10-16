@@ -1,15 +1,32 @@
-# Phase 1 구조
+# Phase 2 구조
 
-LINE → raw body HMAC 검증 → MyBatis DB 접수 → 200 OK → DB worker → 언어 감지 → TranslationService → TranslationProvider → LineClient.
+LINE → raw body HMAC 검증 → MyBatis DB 접수 → 200 OK → DB worker → 대화 설정·언어 감지·문맥 → TranslationService → 번역 Provider → ReverseTranslationChecker → VerificationProvider → 회신 포맷 → LineClient.
 
-TranslationService와 TranslationProvider는 LINE SDK에 의존하지 않는다. Request에는 문맥/옵션 확장 필드를 두었으나 Phase 1에서는 사용하지 않는다. 역번역·검증 상태·문맥 저장·관리자 명령은 미구현이며 Phase 2 이후 추가한다. 로컬 Qwen은 OpenAI 호환 API용 LocalQwenProvider로 연결한다. React + TypeScript + Vite UI는 Phase 3이다.
+TranslationService와 검증·문맥 계층은 LINE에 의존하지 않는다. Request는 원문, 원문·목표 언어, 문맥, 옵션을 받는다. Result는 번역문·역번역·검증 상태·경고·처리 시간·번역/검증 모델·시도 수·차단 여부를 반환한다. 원문 언어를 확정할 수 없는 입력은 AUTO로 번역하고 검증 모델에 원문 언어 감지를 맡긴다.
 
-DB 큐로 접수 이후 재시작되어도 PENDING 작업은 남는다. 동일 webhookEventId는 PK로 7일간 차단한다. PROCESSING을 획득한 작업은 자동 재전송하지 않는다. 외부 전달과 DB 변경은 원자적이지 않아 네트워크 단절/프로세스 종료 시 exactly-once를 보장할 수 없다. 미확정 전달은 UNKNOWN으로 남겨 중복 회신보다 보수적인 전달 정책을 택한다. 10분 이상 중단된 PROCESSING도 UNKNOWN으로 정리한다. webhook DB 접수 실패는 5xx이며 LINE의 redelivery 설정이 필요하다.
+## 품질 처리
 
-원문과 Reply Token은 대기 작업 동안만 DB에 저장하고 모든 종료 상태에서 제거한다. 대화 문맥은 저장하지 않는다. 그룹 ID는 그룹 설정 테이블에 남고 사용자가 탈퇴한 그룹 삭제 정책은 운영에서 관리한다. 원문·토큰·AI 응답 본문을 로그에 남기지 않는다. 운영 DB 볼륨/백업은 암호화하고 접근을 제한해야 한다.
+1. TranslationProvider로 후보를 생성한다. 문맥은 별도 인용 데이터로 전달한다.
+2. VerificationProvider가 별도 요청으로 역번역한다. 알려진 원문 언어와 역번역 언어가 맞지 않으면 검증 완료로 간주하지 않는다.
+3. 별도 의미 평가 요청으로 숫자·시간·금액·이름·장소·부정·문장 의도·누락·추가를 검사한다. JSON 스키마와 경고 코드 허용 목록을 검사한다.
+4. ReverseTranslationChecker가 원문·역번역의 숫자도 비교한다. 문자열 유사도를 의미 정확도로 사용하지 않는다.
+5. FAIL이면 시간 예산 안에서 최대 한 번 재번역한다. 위험 판정은 수정본이 PASS로 검증돼야 해소한다. 해소되지 않은 위험 후보는 회신에 넣지 않는다.
+6. 표시 설정에 맞춰 회신한다. 검증 불가·지속 FAIL을 정상 PASS로 숨기지 않는다.
 
-작업자는 한 번에 하나를 실행하는 MVP이다. 부하가 높으면 Reply Token이 만료될 수 있으므로 큐 지연을 감시한다. 토큰 수신 시점과 이벤트 발생 시점 모두 45초 이내일 때 Reply를 시도한다. 기본 Push 비활성. 활성화 시 5분 이내 이벤트만 만료된 Reply 대신 Push한다. Reply 실패 후 Push로 자동 전환하지 않는다. LINE 호출 횟수/오류 및 번역 처리 시간은 Micrometer에 기록하고 공개 HTTP 지표 엔드포인트는 열지 않는다.
+번역·검증은 기본 같은 Qwen을 재사용하지만 검증 서버·모델·키를 분리할 수 있다. 다른 서버에 번역 키를 자동 전달하지 않는다. 기본은 3회, 재번역 포함 최대 6회 AI 호출이며 전체 예산 기본 30초, 최대 설정 35초로 제한한다. 오래 대기한 작업은 Reply 여유 시간에 맞춰 예산을 더 줄인다. 세부 정책과 제한은 [품질 가이드](phase2-quality.md)에 정리한다.
 
-LINE 봇 메시지는 일반적으로 웹훅 수신 대상이 아니며, bot user ID가 설정되어 있으면 source.userId도 명시적으로 제외한다. 그룹 텍스트·active mode만 처리하고 한국어/태국어 혼합, 다른 언어, 비텍스트, 슬래시 명령은 무시한다. 그룹 설정은 현재 DB에서만 관리하며 웹/채팅 설정 명령을 열지 않는다.
+## 설정과 문맥
 
-외부 AI는 OpenAI 호환 /chat/completions API. Timeout/HTTP 오류 시 작업 FAILED, 자동 AI 재시도는 하지 않아 중복 비용을 막는다. LINE Reply는 사용 횟수 제한 때문에 무조건 재시도하지 않는다. Push에는 이벤트 기반 retry key를 사용한다. 향후 재시도는 영속 outbox와 공급자별 정책을 추가해 구현한다.
+1:1 userId 또는 groupId를 대화 키로 사용한다. 기존 chat_groups는 번역 ON/OFF, chat_group_languages는 번역 쌍, chat_default_languages는 쌍 밖 메시지의 번역 대상, chat_quality_settings는 검증 표시·문맥 개수를 저장한다. 신규 테이블은 IF NOT EXISTS로 생성하므로 기존 데이터를 유지한다.
+
+ConversationContextStore 인터페이스의 기본 구현은 RAM이다. 성공적으로 회신한 원문만 최근 최대 10개, 기본 600초 보관한다. 입력 문맥은 총 4,000자 이하, 전체 저장소는 최대 1,000개 대화로 제한한다. 이벤트 ID 중복을 제거하며 번역문·역번역·명령어·봇 메시지는 넣지 않는다. 접근 시와 30초 주기 정리로 만료한다. 문맥 OFF·번역 OFF·언어 쌍 변경 시 해당 대화 문맥을 비운다. 재시작하면 문맥 원문은 사라지지만 설정은 DB에 남는다. Redis는 필요 없다.
+
+사용자의 후속 선택에 따라 설정 명령은 1:1 본인 또는 그룹 참여자 누구나 사용한다. 초기 지시서의 관리자 등록·권한 제한을 현재 명령에 적용하지 않는다. LINE 그룹 관리자 여부를 API에서 임의로 추정하지 않는다. 웹 관리 화면·인증은 Phase 3에서 구현하며 기존 React + TypeScript + Vite 계획을 유지한다.
+
+## 이벤트·전달 보장
+
+DB 큐의 PENDING 작업은 재시작 후 남으며 동일 webhookEventId를 7일간 차단한다. 작업 claim으로 하나의 worker가 처리한다. 외부 전달과 DB 변경은 원자적이지 않아 exactly-once를 보장하지 않는다. 전달이 불확실한 작업은 UNKNOWN으로 두며 자동 회신 재시도를 하지 않는다. 10분 이상 PROCESSING인 작업도 UNKNOWN으로 정리한다.
+
+수신·이벤트 시각 모두 45초 이내일 때 Reply를 시도한다. 기본 Push는 OFF이며 활성화해도 5분 이내 이벤트만 대신 Push할 수 있다. Reply 실패 후 무조건 Push하지 않는다. Push는 이벤트 기반 retry key를 사용한다. DB 접수 실패는 5xx로 응답한다.
+
+DB 작업의 원문·reply token·대화 ID는 종료 시 제거한다. 설정 테이블에는 대화 ID가 남는다. 문맥 ON이면 원문은 위 RAM 보관 정책에 따른다. 원문·AI 응답·Token·대화 식별자를 운영 로그에 기록하지 않는다. LINE 호출·오류, 처리 시간, 검증 상태는 내부 Micrometer 지표로 기록하며 공개 HTTP 지표 엔드포인트는 열지 않는다. health/webhook 외 웹 접근은 차단한다.

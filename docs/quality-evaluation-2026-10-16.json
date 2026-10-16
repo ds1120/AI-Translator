@@ -1,0 +1,131 @@
+[ {
+  "id" : "ko-th",
+  "original" : "내일 오전 9시에 호텔 앞에서 만나요.",
+  "result" : {
+    "translatedText" : "พบกันพรุ่งนี้เวลา 9.00 น. หน้าโรงแรมค่ะ",
+    "model" : "Qwen3-14B",
+    "processingMillis" : 5786,
+    "reverseTranslation" : "내일 오전 9시에 호텔 앞에서 만나요.",
+    "verificationStatus" : "PASS",
+    "warnings" : [ ],
+    "verificationModel" : "Qwen3-14B",
+    "attempts" : 1,
+    "blocked" : false,
+    "verified" : true
+  }
+}, {
+  "id" : "th-ko",
+  "original" : "พรุ่งนี้เจอกันตอนเก้าโมงเช้า",
+  "result" : {
+    "translatedText" : "내일 아침 9시에 만나자.",
+    "model" : "Qwen3-14B",
+    "processingMillis" : 3911,
+    "reverseTranslation" : "พรุ่งนี้เจอกันตอนเก้าโมงเช้า",
+    "verificationStatus" : "PASS",
+    "warnings" : [ ],
+    "verificationModel" : "Qwen3-14B",
+    "attempts" : 1,
+    "blocked" : false,
+    "verified" : true
+  }
+}, {
+  "id" : "ko-vi",
+  "original" : "송금하지 마세요.",
+  "result" : {
+    "translatedText" : "Đừng chuyển tiền.",
+    "model" : "Qwen3-14B",
+    "processingMillis" : 3804,
+    "reverseTranslation" : "송금하지 마세요.",
+    "verificationStatus" : "PASS",
+    "warnings" : [ ],
+    "verificationModel" : "Qwen3-14B",
+    "attempts" : 1,
+    "blocked" : false,
+    "verified" : true
+  }
+}, {
+  "id" : "vi-ko",
+  "original" : "Đừng chuyển tiền.",
+  "result" : {
+    "translatedText" : "금액을 이체하지 마세요.",
+    "model" : "Qwen3-14B",
+    "processingMillis" : 3730,
+    "reverseTranslation" : "Đừng chuyển tiền.",
+    "verificationStatus" : "PASS",
+    "warnings" : [ ],
+    "verificationModel" : "Qwen3-14B",
+    "attempts" : 1,
+    "blocked" : false,
+    "verified" : true
+  }
+}, {
+  "id" : "ko-en",
+  "original" : "가격은 12000원입니다.",
+  "result" : {
+    "translatedText" : "The price is 12,000 won.",
+    "model" : "Qwen3-14B",
+    "processingMillis" : 4608,
+    "reverseTranslation" : "가격은 12,000원입니다.",
+    "verificationStatus" : "PASS",
+    "warnings" : [ ],
+    "verificationModel" : "Qwen3-14B",
+    "attempts" : 1,
+    "blocked" : false,
+    "verified" : true
+  }
+}, {
+  "id" : "en-ko",
+  "original" : "The price is 12000 won.",
+  "result" : {
+    "translatedText" : "가격은 12000원입니다.",
+    "model" : "Qwen3-14B",
+    "processingMillis" : 3757,
+    "reverseTranslation" : "The price is 12000 won.",
+    "verificationStatus" : "PASS",
+    "warnings" : [ ],
+    "verificationModel" : "Qwen3-14B",
+    "attempts" : 1,
+    "blocked" : false,
+    "verified" : true
+  }
+}, {
+  "id" : "ko-ja",
+  "original" : "오늘 오후 3시에 출발해 주세요.",
+  "result" : {
+    "translatedText" : "今日は午後3時に出発してください。",
+    "model" : "Qwen3-14B",
+    "processingMillis" : 3833,
+    "reverseTranslation" : "오늘 오후 3시에 출발해 주세요.",
+    "verificationStatus" : "PASS",
+    "warnings" : [ ],
+    "verificationModel" : "Qwen3-14B",
+    "attempts" : 1,
+    "blocked" : false,
+    "verified" : true
+  }
+}, {
+  "id" : "ja-ko",
+  "original" : "今日の午後3時に出発してください。",
+  "result" : {
+    "translatedText" : "오늘 오후 3시에 출발해 주세요.",
+    "model" : "Qwen3-14B",
+    "processingMillis" : 4084,
+    "reverseTranslation" : "今日は午後3時に出発してください。",
+    "verificationStatus" : "PASS",
+    "warnings" : [ ],
+    "verificationModel" : "Qwen3-14B",
+    "attempts" : 1,
+    "blocked" : false,
+    "verified" : true
+  }
+}, {
+  "verification" : {
+    "status" : "FAIL",
+    "reverseTranslation" : "내일 오전 10시에 만나자.",
+    "warnings" : [ "TIME_DATE", "NUMBER" ],
+    "dangerous" : true,
+    "model" : "Qwen3-14B",
+    "completed" : true
+  },
+  "id" : "deliberate-time-error"
+} ]

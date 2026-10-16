@@ -31,6 +31,12 @@ management:
     health:
       show-details: never
 app:
+  verification:
+    enabled: ${VERIFICATION_ENABLED:true}
+    budget-ms: ${VERIFICATION_BUDGET_MS:30000}
+  context:
+    max-messages: ${CONTEXT_MAX_MESSAGES:10}
+    ttl-seconds: ${CONTEXT_TTL_SECONDS:600}
   translation:
     partner-language: ${TRANSLATION_PARTNER_LANGUAGE:TH}
   mode: live

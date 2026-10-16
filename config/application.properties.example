@@ -16,3 +16,13 @@ app.translation.partner-language=TH
 app.line.push-enabled=false
 app.line.secret=
 app.line.token=
+# Phase 2: checking runs even when /verification display is hidden.
+app.verification.enabled=true
+app.verification.budget-ms=30000
+app.context.max-messages=10
+app.context.ttl-seconds=600
+# Optional independent verifier. Omit these to reuse the translation server/model.
+# app.verification.provider=local-qwen
+# app.verification.base-url=http://127.0.0.1:8083/v1
+# app.verification.model=your-verification-model
+# app.verification.key=

@@ -24,7 +24,8 @@ import static org.awaitility.Awaitility.await;
 class WebhookIntegrationTest {
  @Autowired MockMvc mvc; @Autowired ObjectMapper json; @Autowired MockLineClient line;
  @Autowired EventMapper events; @Autowired JdbcTemplate db;
- @BeforeEach void clear(){db.update("DELETE FROM webhook_events");db.update("DELETE FROM chat_group_languages");db.update("DELETE FROM chat_default_languages");db.update("DELETE FROM chat_groups");line.clear();}
+ @Autowired com.aitranslator.context.ConversationContextStore context;
+ @BeforeEach void clear(){for(String id:db.queryForList("SELECT group_id FROM chat_groups",String.class))context.clear(id);db.update("DELETE FROM webhook_events");db.update("DELETE FROM chat_quality_settings");db.update("DELETE FROM chat_group_languages");db.update("DELETE FROM chat_default_languages");db.update("DELETE FROM chat_groups");line.clear();}
  private String body(String id,String text,String group,String user,String mode,long timestamp) throws Exception {
   return json.writeValueAsString(Map.of("events",List.of(Map.of("type","message","mode",mode,"webhookEventId",id,"timestamp",timestamp,
     "replyToken","test-token","source",Map.of("type","group","groupId",group,"userId",user),"message",Map.of("type","text","id","m1","text",text)))));
@@ -75,7 +76,7 @@ class WebhookIntegrationTest {
   mvc.perform(post("/webhooks/line").contentType("application/json").content("{").header("X-Line-Signature",signature("{"))).andExpect(status().isBadRequest());
  }
  @Test void unsupportedTextAndCommandsAreIgnored()throws Exception {
-  for(var pair:Map.of("english","hello", "mixed","안녕 สวัสดี", "command","/번역 끄기").entrySet()){
+  for(var pair:Map.of("english","hello", "mixed","안녕 สวัสดี", "command","/미지원 명령").entrySet()){
    postBody(body(pair.getKey(),pair.getValue()));finished(pair.getKey(),"IGNORED");
   }
   assertThat(line.messages()).isEmpty();
@@ -213,5 +214,36 @@ class WebhookIntegrationTest {
   postBody(original);
   postBody(body("default-expired","/기본언어 일본어","alice","member","active",System.currentTimeMillis()-120_000));finished("default-expired","EXPIRED");
   assertThat(db.queryForObject("SELECT default_language FROM chat_default_languages WHERE conversation_id='alice'",String.class)).isEqualTo("EN");
+ }
+ @Test void qualityCommandsAndTranslationToggleAreConversationScoped()throws Exception {
+  postBody(directBody("quality-display","alice","/검증 전체"));finished("quality-display","SENT");
+  postBody(directBody("quality-first","alice","안녕하세요"));finished("quality-first","SENT");
+  assertThat(line.messages().getLast().text()).contains("🔍 검증: PASS","역번역: 안녕하세요");
+  assertThat(context.recent("alice",10)).containsExactly("안녕하세요");
+  postBody(directBody("context-off","alice","/문맥 0"));finished("context-off","SENT");
+  assertThat(context.recent("alice",10)).isEmpty();
+  postBody(directBody("context-no-store","alice","안녕하세요"));finished("context-no-store","SENT");
+  assertThat(context.recent("alice",10)).isEmpty();
+  postBody(directBody("translation-off","alice","/번역 끄기"));finished("translation-off","SENT");
+  postBody(directBody("translation-ignored","alice","안녕하세요"));finished("translation-ignored","IGNORED");
+  postBody(directBody("other-unaffected","bob","안녕하세요"));finished("other-unaffected","SENT");
+  assertThat(line.messages().getLast().text()).isEqualTo("[MOCK] 🇹🇭 สวัสดีค่ะ");
+  postBody(directBody("off-status","alice","/상태"));finished("off-status","SENT");
+  assertThat(line.messages().getLast().text()).contains("번역: OFF","문맥: 최근 0개","표시: 전체");
+  postBody(directBody("translation-on","alice","/번역 켜기"));finished("translation-on","SENT");
+  postBody(directBody("translation-resumed","alice","안녕하세요"));finished("translation-resumed","SENT");
+  postBody(directBody("quality-hide","alice","/검증 숨김"));finished("quality-hide","SENT");
+  postBody(directBody("quality-hidden-result","alice","안녕하세요"));finished("quality-hidden-result","SENT");
+  assertThat(line.messages().getLast().text()).isEqualTo("[MOCK] 🇹🇭 สวัสดีค่ะ");
+ }
+ @Test void qualityCommandsValidateValuesAndPreserveOtherPreferences()throws Exception {
+  postBody(directBody("context-five","alice","/문맥 5"));finished("context-five","SENT");
+  postBody(directBody("warning-display","alice","/검증 경고"));finished("warning-display","SENT");
+  postBody(directBody("bad-context","alice","/문맥 100"));finished("bad-context","SENT");
+  assertThat(line.messages().getLast().text()).contains("사용법:");
+  postBody(directBody("quality-status","alice","/상태"));finished("quality-status","SENT");
+  assertThat(line.messages().getLast().text()).contains("문맥: 최근 5개","표시: 경고");
+  postBody(directBody("help-menu","alice","/도움말"));finished("help-menu","SENT");
+  assertThat(line.messages().getLast().text()).contains("/검증 전체","/문맥 0","/번역 끄기");
  }
 }

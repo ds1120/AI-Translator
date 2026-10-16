@@ -27,6 +27,8 @@ public class AppConfig {
    if(!Set.of(Language.TH,Language.VI,Language.EN,Language.JA).contains(partnerLanguage())) throw new IllegalStateException("Partner language must be TH, VI, EN or JA");
    if (!get("app.mode","mock").matches("mock|live")) throw new IllegalStateException("app.mode must be mock or live");
    if (timeout()<1 || timeout()>20) throw new IllegalStateException("AI timeout must be 1..20 seconds");
+   if(qualityBudgetMillis()<1000 || qualityBudgetMillis()>35000)throw new IllegalStateException("Quality budget must be 1000..35000 ms");
+   if(!Set.of(0,5,10).contains(contextLimit()) || contextTtlSeconds()<1 || contextTtlSeconds()>3600)throw new IllegalStateException("Invalid context settings");
    if (!mock()) {
     if (!provider().matches("external|local-qwen")) throw new IllegalStateException("Unknown AI provider");
     for (String key : new String[]{"app.line.secret","app.line.token"})
@@ -38,6 +40,14 @@ public class AppConfig {
     if (uri.getHost()==null || uri.getUserInfo()!=null || uri.getQuery()!=null || uri.getFragment()!=null
      || (!secure && !(provider().equals("local-qwen") && loopback && "http".equals(uri.getScheme()))))
      throw new IllegalStateException("AI requires HTTPS; local Qwen may use loopback HTTP");
+    if(verificationEnabled()){
+     if(!get("app.verification.provider",provider()).matches("external|local-qwen"))throw new IllegalStateException("Unknown verification provider");
+     URI verification=URI.create(verificationBase());
+     boolean local=Set.of("localhost","127.0.0.1","[::1]","::1").contains(verification.getHost()==null?"":verification.getHost());
+     if(verification.getHost()==null || verification.getUserInfo()!=null || verification.getQuery()!=null || verification.getFragment()!=null
+      || !("https".equals(verification.getScheme()) || (verificationQwen() && local && "http".equals(verification.getScheme()))))throw new IllegalStateException("Verification requires HTTPS or local Qwen loopback HTTP");
+     if(!verificationQwen() && verificationKey().isBlank())throw new IllegalStateException("Missing verification API key");
+    }
    }
    if (secret().isBlank()) throw new IllegalStateException("LINE signing secret must not be empty");
   }
@@ -55,5 +65,13 @@ public class AppConfig {
   public int timeout(){return Integer.parseInt(get("app.ai.timeout-seconds","15"));}
   public boolean push(){return Boolean.parseBoolean(get("app.line.push-enabled","false"));}
   public String botId(){return get("app.line.bot-user-id","");}
+  public boolean verificationEnabled(){return Boolean.parseBoolean(get("app.verification.enabled","true"));}
+  public String verificationBase(){return get("app.verification.base-url",aiBase());}
+  public String verificationModel(){return get("app.verification.model",model());}
+  public String verificationKey(){return get("app.verification.key",verificationBase().equals(aiBase())?get("app.ai.key",""):"");}
+  public boolean verificationQwen(){return get("app.verification.provider",provider()).equals("local-qwen");}
+  public int qualityBudgetMillis(){return Integer.parseInt(get("app.verification.budget-ms","30000"));}
+  public int contextLimit(){return Integer.parseInt(get("app.context.max-messages","10"));}
+  public int contextTtlSeconds(){return Integer.parseInt(get("app.context.ttl-seconds","600"));}
  }
 }
