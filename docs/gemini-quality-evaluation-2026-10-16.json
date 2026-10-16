@@ -1,0 +1,29 @@
+[ {
+  "input" : "내일 아침 9시에 출발할게.",
+  "result" : {
+    "translatedText" : "พรุ่งนี้จะออกเดินทางตอน 9 โมงเช้านะ",
+    "model" : "gemini-3.8-flash",
+    "processingMillis" : 9115,
+    "reverseTranslation" : "내일 아침 9시에 출발할 거야",
+    "verificationStatus" : "PASS",
+    "warnings" : [ ],
+    "verificationModel" : "gemini-3.8-flash",
+    "attempts" : 1,
+    "blocked" : false,
+    "verified" : true
+  }
+}, {
+  "input" : "พรุ่งนี้เจอกันตอนสิบโมงนะ",
+  "result" : {
+    "translatedText" : "내일 10시에 만나.",
+    "model" : "gemini-3.8-flash",
+    "processingMillis" : 13492,
+    "reverseTranslation" : "เจอกันพรุ่งนี้ตอน 10 โมงนะ",
+    "verificationStatus" : "WARNING",
+    "warnings" : [ "NUMBER" ],
+    "verificationModel" : "gemini-3.8-flash",
+    "attempts" : 1,
+    "blocked" : false,
+    "verified" : true
+  }
+} ]
