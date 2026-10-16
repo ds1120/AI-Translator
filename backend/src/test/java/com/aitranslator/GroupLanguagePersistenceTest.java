@@ -15,6 +15,7 @@ class GroupLanguagePersistenceTest {
    statement.execute("INSERT INTO chat_groups(group_id) VALUES('existing-group')");
    ScriptUtils.executeSqlScript(connection,new ClassPathResource("schema.sql"));
    statement.execute("INSERT INTO chat_group_languages(group_id,partner_language) VALUES('existing-group','JA')");
+   statement.execute("INSERT INTO chat_default_languages(conversation_id,default_language) VALUES('existing-group','TH')");
   }
   try(var connection=DriverManager.getConnection(url,"sa","");var statement=connection.createStatement()) {
    ScriptUtils.executeSqlScript(connection,new ClassPathResource("schema.sql"));
@@ -23,6 +24,9 @@ class GroupLanguagePersistenceTest {
    }
    try(var result=statement.executeQuery("SELECT translation_enabled FROM chat_groups WHERE group_id='existing-group'")) {
     assertThat(result.next()).isTrue();assertThat(result.getBoolean(1)).isTrue();
+   }
+   try(var result=statement.executeQuery("SELECT default_language FROM chat_default_languages WHERE conversation_id='existing-group'")) {
+    assertThat(result.next()).isTrue();assertThat(result.getString(1)).isEqualTo("TH");
    }
   }
  }

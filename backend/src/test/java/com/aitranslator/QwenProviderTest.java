@@ -61,4 +61,11 @@ class QwenProviderTest {
    .withPropertyValues("app.mode=live","app.ai.provider=local-qwen")
    .run(context->{assertThat(context).hasSingleBean(TranslationProvider.class);assertThat(context.getBean(TranslationProvider.class)).isInstanceOf(LocalQwenProvider.class);});
  }
+ @Test void detectsUnknownSourceWithoutForcingKorean()throws Exception{
+  var h=http("안녕하세요","stop");var provider=new LocalQwenProvider(h,new Settings(env()));
+  provider.translate(new TranslationService.Request("你好",Language.AUTO,Language.KO,List.of(),Map.of()));
+  var payload=ArgumentCaptor.forClass(Object.class);
+  verify(h).post(anyString(),anyMap(),payload.capture(),anyInt());
+  assertThat(payload.getValue().toString()).contains("Detect the input language and translate to Korean");
+ }
 }

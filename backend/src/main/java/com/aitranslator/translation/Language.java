@@ -1,6 +1,6 @@
 package com.aitranslator.translation;
 public enum Language {
- KO("Korean", "🇰🇷"), TH("Thai", "🇹🇭"), VI("Vietnamese", "🇻🇳"), EN("English", "🇺🇸"), JA("Japanese", "🇯🇵");
+ KO("Korean", "🇰🇷"), TH("Thai", "🇹🇭"), VI("Vietnamese", "🇻🇳"), EN("English", "🇺🇸"), JA("Japanese", "🇯🇵"), AUTO("automatically detected language", "🌐");
  private final String displayName; private final String flag;
  Language(String displayName,String flag){this.displayName=displayName;this.flag=flag;}
  public String displayName(){return displayName;}

@@ -24,7 +24,7 @@ public class AppConfig {
   private final Environment e;
   public Settings(Environment e) {
    this.e=e;
-   if(partnerLanguage()==Language.KO) throw new IllegalStateException("Partner language must be TH, VI, EN or JA");
+   if(!Set.of(Language.TH,Language.VI,Language.EN,Language.JA).contains(partnerLanguage())) throw new IllegalStateException("Partner language must be TH, VI, EN or JA");
    if (!get("app.mode","mock").matches("mock|live")) throw new IllegalStateException("app.mode must be mock or live");
    if (timeout()<1 || timeout()>20) throw new IllegalStateException("AI timeout must be 1..20 seconds");
    if (!mock()) {

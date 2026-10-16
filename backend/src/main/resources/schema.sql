@@ -17,3 +17,7 @@ CREATE TABLE IF NOT EXISTS chat_group_languages (
  group_id VARCHAR(128) PRIMARY KEY,
  partner_language VARCHAR(2) NOT NULL
 );
+CREATE TABLE IF NOT EXISTS chat_default_languages (
+ conversation_id VARCHAR(128) PRIMARY KEY,
+ default_language VARCHAR(2) NOT NULL
+);

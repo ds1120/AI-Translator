@@ -1,5 +1,7 @@
 package com.aitranslator.ai;
 import java.util.Map;
+import java.util.Set;
+import com.aitranslator.translation.Language;
 import org.springframework.stereotype.Component;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import com.aitranslator.translation.TranslationService.Request;
@@ -12,15 +14,9 @@ public class MockTranslationProvider implements TranslationProvider {
   "내일 아침 9시에 출발할게.", "พรุ่งนี้ฉันจะออกเดินทางตอนเก้าโมงเช้า",
   "พรุ่งนี้เจอกันตอนสิบโมงนะ", "내일 10시에 만나자.");
  public String translate(Request r){
-  if(r.source()==com.aitranslator.translation.Language.KO && r.text().strip().equals("안녕하세요")) {
-   if(r.target()==com.aitranslator.translation.Language.VI)return "Xin chào";
-   if(r.target()==com.aitranslator.translation.Language.EN)return "Hello";
-   if(r.target()==com.aitranslator.translation.Language.JA)return "こんにちは";
-  }
-  if(r.source()==com.aitranslator.translation.Language.EN && r.text().strip().equals("Hello"))return "안녕하세요";
-  if(r.source()==com.aitranslator.translation.Language.JA && r.text().strip().equals("こんにちは"))return "안녕하세요";
-  if(r.source()==com.aitranslator.translation.Language.VI && r.text().strip().equals("Xin chào"))return "안녕하세요";
-  if(r.source()!=com.aitranslator.translation.Language.TH && r.target()!=com.aitranslator.translation.Language.TH)
+  if(Set.of("안녕하세요","สวัสดีค่ะ","Xin chào","Hello","こんにちは","你好").contains(r.text().strip()))
+   return switch(r.target()){case KO -> "안녕하세요";case TH -> "สวัสดีค่ะ";case VI -> "Xin chào";case EN -> "Hello";case JA -> "こんにちは";default -> throw new IllegalArgumentException("Invalid target language");};
+  if(r.source()!=Language.TH && r.target()!=Language.TH)
    throw new IllegalArgumentException("Mock mode supports documented fixtures only");
   String value=FIXTURES.get(r.text().strip());
   if(value==null) throw new IllegalArgumentException("Mock mode supports documented fixtures only");

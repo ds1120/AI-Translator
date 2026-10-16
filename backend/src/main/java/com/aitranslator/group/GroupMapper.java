@@ -7,4 +7,7 @@ public interface GroupMapper {
  @Select("SELECT partner_language FROM chat_group_languages WHERE group_id=#{id}") String partnerLanguage(String id);
  @Insert("INSERT INTO chat_group_languages(group_id,partner_language) VALUES(#{id},#{language}) ON DUPLICATE KEY UPDATE partner_language=VALUES(partner_language)")
  void setPartnerLanguage(@Param("id")String id,@Param("language")String language);
+ @Select("SELECT default_language FROM chat_default_languages WHERE conversation_id=#{id}") String defaultLanguage(String id);
+ @Insert("INSERT INTO chat_default_languages(conversation_id,default_language) VALUES(#{id},#{language}) ON DUPLICATE KEY UPDATE default_language=VALUES(default_language)")
+ void setDefaultLanguage(@Param("id")String id,@Param("language")String language);
 }

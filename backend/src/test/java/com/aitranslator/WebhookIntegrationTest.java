@@ -24,7 +24,7 @@ import static org.awaitility.Awaitility.await;
 class WebhookIntegrationTest {
  @Autowired MockMvc mvc; @Autowired ObjectMapper json; @Autowired MockLineClient line;
  @Autowired EventMapper events; @Autowired JdbcTemplate db;
- @BeforeEach void clear(){db.update("DELETE FROM webhook_events");db.update("DELETE FROM chat_group_languages");db.update("DELETE FROM chat_groups");line.clear();}
+ @BeforeEach void clear(){db.update("DELETE FROM webhook_events");db.update("DELETE FROM chat_group_languages");db.update("DELETE FROM chat_default_languages");db.update("DELETE FROM chat_groups");line.clear();}
  private String body(String id,String text,String group,String user,String mode,long timestamp) throws Exception {
   return json.writeValueAsString(Map.of("events",List.of(Map.of("type","message","mode",mode,"webhookEventId",id,"timestamp",timestamp,
     "replyToken","test-token","source",Map.of("type","group","groupId",group,"userId",user),"message",Map.of("type","text","id","m1","text",text)))));
@@ -177,5 +177,41 @@ class WebhookIntegrationTest {
   String missing=directBody("missing-user","","/설정");
   mvc.perform(post("/webhooks/line").contentType("application/json").content(missing).header("X-Line-Signature",signature(missing))).andExpect(status().isBadRequest());
   assertThat(events.pending()).isEmpty();
+ }
+ @Test void defaultLanguageTranslatesOutsidePairAndKeepsNormalPair()throws Exception {
+  postBody(directBody("fallback-ko","alice","/기본언어 한국어"));finished("fallback-ko","SENT");
+  postBody(directBody("outside-en","alice","Hello"));finished("outside-en","SENT");
+  assertThat(line.messages().getLast().text()).isEqualTo("[MOCK] 🇰🇷 안녕하세요");
+  postBody(directBody("inside-ko","alice","안녕하세요"));finished("inside-ko","SENT");
+  assertThat(line.messages().getLast().text()).isEqualTo("[MOCK] 🇹🇭 สวัสดีค่ะ");
+  postBody(directBody("inside-th","alice","สวัสดีค่ะ"));finished("inside-th","SENT");
+  assertThat(line.messages().getLast().text()).isEqualTo("[MOCK] 🇰🇷 안녕하세요");
+  postBody(directBody("fallback-th","alice","/기본언어 태국어"));finished("fallback-th","SENT");
+  postBody(directBody("outside-en-th","alice","Hello"));finished("outside-en-th","SENT");
+  assertThat(line.messages().getLast().text()).isEqualTo("[MOCK] 🇹🇭 สวัสดีค่ะ");
+  postBody(directBody("unknown-script","alice","你好"));finished("unknown-script","SENT");
+  assertThat(line.messages().getLast().text()).isEqualTo("[MOCK] 🇹🇭 สวัสดีค่ะ");
+ }
+ @Test void defaultLanguageIsConversationScopedAndShowsInSettings()throws Exception {
+  for(var pair:List.of(Map.entry("한국어","KO"),Map.entry("태국어","TH"),Map.entry("베트남어","VI"),Map.entry("영어","EN"),Map.entry("일본어","JA"))) {
+   String eventId="fallback-"+pair.getValue();
+   postBody(directBody(eventId,"alice","/기본언어 "+pair.getKey()));finished(eventId,"SENT");
+   assertThat(db.queryForObject("SELECT default_language FROM chat_default_languages WHERE conversation_id='alice'",String.class)).isEqualTo(pair.getValue());
+  }
+  postBody(directBody("saved-query","alice","/설정"));finished("saved-query","SENT");
+  assertThat(line.messages().getLast().text()).contains("기본언어: 일본어");
+  postBody(directBody("invalid-default","alice","/기본언어 중국어"));finished("invalid-default","SENT");
+  assertThat(line.messages().getLast().text()).contains("사용법:","기본언어: 일본어");
+  postBody(directBody("bob-no-fallback","bob","Hello"));finished("bob-no-fallback","IGNORED");
+  postBody(body("group-no-fallback","Hello"));finished("group-no-fallback","IGNORED");
+  postBody(directBody("no-letters","alice","123 👍"));finished("no-letters","IGNORED");
+  postBody(directBody("already-default","alice","こんにちは"));finished("already-default","IGNORED");
+ }
+ @Test void defaultLanguageCommandsRespectDeduplicationAndExpiry()throws Exception {
+  String original=directBody("default-first","alice","/기본언어 한국어");postBody(original);finished("default-first","SENT");
+  postBody(directBody("default-second","alice","/기본언어 영어"));finished("default-second","SENT");
+  postBody(original);
+  postBody(body("default-expired","/기본언어 일본어","alice","member","active",System.currentTimeMillis()-120_000));finished("default-expired","EXPIRED");
+  assertThat(db.queryForObject("SELECT default_language FROM chat_default_languages WHERE conversation_id='alice'",String.class)).isEqualTo("EN");
  }
 }
