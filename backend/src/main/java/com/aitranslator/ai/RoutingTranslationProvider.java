@@ -12,4 +12,6 @@ public class RoutingTranslationProvider implements TranslationProvider {
  public RoutingTranslationProvider(JsonHttp http,Settings settings){this.http=http;this.settings=settings;}
  public String translate(Request request){return settings.provider().equals("local-qwen")?new LocalQwenProvider(http,settings).translate(request):new ExternalLlmProvider(http,settings).translate(request);}
  public String model(){return settings.model();}
+ public boolean supportsIntegrated(){return true;}
+ public IntegratedTranslation translateIntegrated(Request request){return new OpenAiChatClient(http,settings).translateIntegrated(request,settings.provider().equals("local-qwen"));}
 }

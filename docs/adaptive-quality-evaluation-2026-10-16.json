@@ -1,0 +1,46 @@
+﻿[
+    {
+        "input":  {
+                      "targetLanguage":  "TH",
+                      "sourceLanguage":  "KO",
+                      "text":  "고마워. 내일 만나자."
+                  },
+        "result":  {
+                       "translatedText":  "ขอบคุณนะ เจอกันพรุ่งนี้",
+                       "model":  "gemini-3.5-flash-lite",
+                       "processingMillis":  7927,
+                       "reverseTranslation":  "고마워. 내일 만나자.",
+                       "verificationStatus":  "PASS",
+                       "warnings":  [
+
+                                    ],
+                       "verificationModel":  "gemini-3.5-flash-lite",
+                       "attempts":  1,
+                       "blocked":  false,
+                       "verified":  true,
+                       "verificationMethod":  "adaptive-self"
+                   }
+    },
+    {
+        "input":  {
+                      "targetLanguage":  "TH",
+                      "sourceLanguage":  "KO",
+                      "text":  "내일 아침 9시에 출발할게."
+                  },
+        "result":  {
+                       "translatedText":  "พรุ่งนี้เช้า 9 โมงจะออกเดินทางนะ",
+                       "model":  "gemini-3.5-flash-lite",
+                       "processingMillis":  21655,
+                       "reverseTranslation":  "내일 아침 9시에 출발할 거예요.",
+                       "verificationStatus":  "PASS",
+                       "warnings":  [
+
+                                    ],
+                       "verificationModel":  "gemini-3.5-flash-lite",
+                       "attempts":  1,
+                       "blocked":  false,
+                       "verified":  true,
+                       "verificationMethod":  "adaptive-reviewed"
+                   }
+    }
+]

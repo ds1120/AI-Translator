@@ -3,6 +3,8 @@
 한국어 ↔ 선택 언어(태국어·베트남어·영어·일본어) LINE 1:1·그룹 자동 번역 백엔드. Java 21 / Spring Boot 3.5 / Maven / MyBatis / MariaDB.
 관리 화면은 **React + TypeScript + Vite**로 구현했다. `/admin/`에서 관리자 로그인 후 사용한다.
 
+현재 운영 서버는 **192.168.1.120**, 개발·빌드는 **192.168.1.10**이다. [Windows 운영 배포 안내](docs/windows-production.md)를 참고한다. 현재 운영 모델은 사용자 선택에 따라 **Gemini 3.5 Flash Lite + 통합 1회 검사(adaptive)**다. Gemma 4 31B 연결은 구현했지만 실호출 시간 초과로 임시 운영에서 제외했다.
+
 Windows 설치 경로는 `C:\ai\project\AI-Translator`를 기준으로 설명한다. 처음 LINE 계정을 준비한다면 아래 [LINE 계정 생성부터 봇 연결까지](#line-계정-생성부터-봇-연결까지)를 순서대로 진행한다.
 
 ## 인증정보 없이 실행 (Mock)
@@ -146,7 +148,7 @@ app.context.max-messages=10
 app.context.ttl-seconds=600
 ```
 
-기존 설정 파일에 위 값이 없어도 기본값으로 동작한다. 검증용 서버·모델·키를 별도로 지정할 수도 있다. 기본은 현재 Qwen을 별도 요청으로 재사용하므로 독립 모델 검증과 같지는 않다. PASS는 자동 검사에서 문제를 못 찾았다는 뜻이며 사람 검수 없이 정확성을 보증하지 않는다. 기본 AI 호출이 1회에서 3회로 늘어나므로 기존 처리량 추정은 재평가해야 한다. 자세한 처리·실패 정책, 문맥 보관과 실제 Qwen 평가 명령은 [Phase 2 품질 가이드](docs/phase2-quality.md)를 참고한다.
+기존 설정 파일에 위 값이 없어도 기본값으로 동작한다. 검증용 서버·모델·키를 별도로 지정할 수도 있다. 기본은 현재 Qwen을 별도 요청으로 재사용하므로 독립 모델 검증과 같지는 않다. PASS는 자동 검사에서 문제를 못 찾았다는 뜻이며 사람 검수 없이 정확성을 보증하지 않는다. 현재 기본은 통합 1회 검사이며, 경고·숫자 불일치가 있을 때만 추가 검증한다. separate 설정은 기존 3회 분리 방식이다. 자세한 처리·실패 정책, 문맥 보관과 실제 Qwen 평가 명령은 [Phase 2 품질 가이드](docs/phase2-quality.md)를 참고한다.
 
 ## Railway 클라우드 배포 — 선택 사항
 
@@ -439,7 +441,7 @@ Gemini 우선 연결 절차:
 1. `app.ai.gemini.key`를 입력하고 서버를 재시작한다.
 2. 관리자 화면 → AI 설정 → Google Gemini API 선택. 주소는 `https://generativelanguage.googleapis.com/v1beta/openai`, 모델 예시는 `gemini-3.8-flash`다.
 3. 설정 저장 후 테스트 번역에서 합성 문장으로 번역·역번역·검증을 확인한다. 테스트 번역도 실제 외부 API 요청이다.
-4. 저장한 Provider는 이후 LINE 번역에도 적용된다. 원문과 설정된 최근 문맥이 선택한 API로 전달된다. 역번역과 의미 비교를 포함하면 보통 메시지당 3회 요청이며, 재번역하면 추가 요청이 발생한다.
+4. 저장한 Provider는 이후 LINE 번역에도 적용된다. 원문과 설정된 최근 문맥이 선택한 API로 전달된다. 기본 adaptive 방식은 번역·역번역·평가를 한 요청에 포함한다. 경고·코드 검사 이상이 있을 때만 추가 요청하며, 재번역하면 호출이 더 늘어난다.
 
 OpenAI는 같은 방법으로 Provider를 OpenAI API로 선택한다. 주소는 `https://api.openai.com/v1`, 예시 모델은 `gpt-4.1-mini`다. ChatGPT 화면 로그인 대신 API 키를 사용하는 방식이다.
 
@@ -458,3 +460,15 @@ app.verification.model=gpt-4.1-mini
 
 공식 문서: [Gemini OpenAI 호환 API](https://ai.google.dev/gemini-api/docs/openai), [OpenAI Chat Completions](https://developers.openai.com/api/reference/resources/chat/subresources/completions/methods/create).
 Docker에서는 .env의 GEMINI_API_KEY / OPENAI_API_KEY를 사용한다. 변경한 환경변수는 컨테이너를 다시 생성해야 적용된다.
+
+## 통합 1회 검사와 Gemma 4 31B
+
+현재 기본 검증 방식은 `app.verification.strategy=adaptive`다. 정상 메시지는 한 요청에서 번역문·역번역문·자가 평가를 JSON으로 받는다. 원문·후보·역번역의 숫자 불일치 또는 AI의 WARNING/FAIL이 있으면 추가 역번역·의미 검증을 호출한다. FAIL이면 최대 1회 재번역하며 전체 처리 예산은 그대로 적용한다. 추가 검증까지 수행하면 호출 횟수는 1회를 넘는다. 정상 JSON을 받지 못하거나 스키마·평가 값이 모순되면 해당 결과를 통과시키지 않는다.
+
+자가 평가는 독립 검증이 아니며, 원문을 이미 본 모델이 공통 오류를 놓칠 수 있다. 코드 숫자 검사는 날짜·시간·금액의 숫자 왜곡도 확인하지만 모든 의미 오류를 판별하지 않는다. 숫자를 글자로 쓰거나 순서가 자연스럽게 바뀐 경우 추가 검증·경고가 발생할 수 있다. 관리자 테스트 결과에서 통합 자가 검사인지 추가 검증까지 수행했는지 구분한다.
+
+기존 분리 검증이 필요하면 `app.verification.strategy=separate`로 설정하고 재시작한다. 별도 검증 모델 설정은 adaptive의 추가 검증 단계에서 사용한다. Mock 및 통합 응답을 지원하지 않는 Provider는 기존 분리 방식으로 동작한다. `/검증 숨김`은 표시만 바꾸며 검증 실행·요청 수 설정은 아니다.
+
+Gemma 사용 시 관리자 화면의 Provider는 Google Gemini / Gemma API, 모델 ID는 `gemma-4-31b-it`로 설정한다. 기존 Gemini API 키를 재사용한다. Gemma는 Google 기본 generateContent API, 추론 minimal 설정을 사용한다. API 주소 입력란은 기존 Gemini 공식 주소를 유지한다. [Google 공식 Gemma API 문서](https://ai.google.dev/gemma/docs/core/gemma_on_gemini_api)를 참고한다.
+
+계정 화면의 Gemma 한도인 30 RPM/16K TPM/14,400 RPD를 기준으로 정상 1회 메시지는 요청 수만 보면 분당 30개·하루 14,400개가 계산상 상한이다. 긴 지침·최근 문맥·출력 토큰, 추가 검증, 공급자 혼잡과 현재 순차 worker의 실제 처리 시간에 따라 더 낮아진다. 분당 20개 처리 보장을 의미하지 않는다.

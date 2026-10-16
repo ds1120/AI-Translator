@@ -64,3 +64,14 @@
 - 운영 관리자 테스트는 Gemini upstream HTTP 503으로 실패했다. 별도 진단에서 Google의 모델 혼잡(high demand) 응답을 확인했다. 테스트 중 HTTP 429도 관찰했으며 계정의 정확한 RPD/RPM은 확인하지 않았다. 연결 확인을 운영 안정성·품질 보장으로 해석하지 않는다.
 - gemini-2.5-flash는 모델 목록에 있어도 실제 호출에서 새 사용자에게 제공되지 않는다는 HTTP 404를 반환했다. 현재 모델 목록과 실제 호출 가능 여부를 구분해야 한다.
 - 실제 LINE 메시지는 이 시험에서 전송하지 않았다. 키나 관리자 비밀번호는 기록에 포함하지 않았다. 합성 문장 결과는 gemini-quality-evaluation-2026-10-16.json에 보관했다.
+## 2026-10-16 통합 요청과 운영 서버 이전
+
+- Maven verify: 총 89개 중 87개 통과, 실패·오류 0, 실제 모델 선택 테스트 2개 제외. 프런트엔드 TypeScript/Vite 빌드 성공.
+- 정상 통합 PASS의 HTTP 요청이 정확히 1회임을 검증했다. AI 경고 시 추가 검사, 후보의 숫자 왜곡을 역번역·자가 평가가 숨겨도 코드 검사로 검출, 최대 1회 재번역, 추가 검증 불가 시 기존 위험 유지, 잘못된 JSON/모순된 판정/추론 출력/잘린 응답 차단을 테스트했다.
+- Gemma 4 31B의 기본 generateContent API 및 OpenAI 호환 경로를 실호출했으나 시간 초과했다. 모델 메타데이터 조회 성공은 번역 성공을 의미하지 않는다. 사용자 선택에 따라 Gemini 3.5 Flash Lite adaptive로 운영을 전환했다.
+- 192.168.1.120 운영 서버에서 실제 합성 문장 평가: 일반 문장 PASS/adaptive-self 약 7.9초, 숫자 포함 문장 PASS/adaptive-reviewed 약 21.7초. 결과는 adaptive-quality-evaluation-2026-10-16.json에 기록했다. 1회 자가 검사 PASS는 독립 검증 결과나 정확도 보장이 아니다.
+- Java 21, Caddy, JAR, 설정, 일관된 H2 스냅샷과 인증서 저장소를 새 Windows 서버로 배포했다. H2는 개발 PC의 기존 서버를 중지한 뒤 복사했다. 파일 권한 초기 오류를 수정하고 SYSTEM/Administrators 파일 접근과 작업 스케줄러 자동 시작 등록을 확인했다.
+- 120번 HTTPS 인증서 검증, health와 관리자 HTTP 200 확인. 사용자 포트포워딩 변경 후 기존 PC Caddy를 종료한 상태에서도 공개 도메인 두 경로가 HTTP 200이었다. 10번 PC 기존 Caddy·인증서 동기화 자동 작업은 Disabled이며 기존 설치는 caddy-retired-20261016에 보관했다.
+- PowerShell 배포/설치/개발 실행 스크립트 구문 검사와 실제 운영 설치 실행을 확인했다. 최신 배포 스크립트 전체 재배포, OS 재부팅, Docker 빌드는 별도로 수행하지 않았다. 운영 작업 등록 확인을 재부팅 테스트로 표현하지 않는다.
+- 기존 Qwen API/UI는 별도 서비스로 10번 PC에 남으며 새 Caddy가 해당 LAN 포트로 연결한다. 현재 외부 Gemini 번역·관리 API와는 구분한다.
+- 공개 도메인에 올바른 HMAC 서명과 빈 events 배열을 전송하여 webhook HTTP 200을 확인했다. 실제 LINE 메시지 전송은 하지 않았다.

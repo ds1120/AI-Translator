@@ -19,7 +19,7 @@
 
 ## 처리 흐름과 실패 정책
 
-번역 → 역번역 → 의미 평가가 기본 3회 AI 호출이다. FAIL이면 번역·역번역·평가를 한 번 더 시도하므로 최대 6회다. 같은 모델을 사용하더라도 요청은 분리한다. 출력 JSON의 상태·문제 코드는 허용 목록으로 검사하며 모델이 임의로 만든 안내 문구나 추론 내용을 LINE에 그대로 붙이지 않는다.
+`app.verification.strategy=separate`는 번역 → 역번역 → 의미 평가의 3회 AI 호출이다. FAIL이면 번역·역번역·평가를 한 번 더 시도하므로 최대 6회다. separate에서는 같은 모델을 사용하더라도 요청은 분리한다. 출력 JSON의 상태·문제 코드는 허용 목록으로 검사하며 모델이 임의로 만든 안내 문구나 추론 내용을 LINE에 그대로 붙이지 않는다.
 
 - PASS: 모델과 숫자 검사에서 문제를 발견하지 못했다는 뜻이다. 정확성을 보증하지 않는다.
 - WARNING: 불확실하거나 숫자가 문자로 바뀌어 추가 확인이 필요한 경우다. 이 상태만으로 자동 재번역하지 않는다.
@@ -104,3 +104,4 @@ mvn -f backend/pom.xml "-Dtest=QwenQualityEvaluationTest" "-Dquality.eval=true" 
 Phase 2 필수 기능인 역번역·의미 검증·1회 재번역·문맥·설정 명령은 구현했다. 다국어 사람 검수 정답집 확대와 별도 모델 비교는 지속적인 품질 개선 과제다. 자동 PASS는 정확도 보장이 아니다.
 
 실제 주어 평가는 `mvn -f backend/pom.xml -Dtest=TwoPersonConversationEvaluationTest -Dquality.pronouns=true test`로 별도 실행한다.
+현재 기본 adaptive는 정상 메시지의 번역·역번역·자가 평가를 1회 요청에 통합한다. WARNING/FAIL 또는 숫자·출력 언어 검사 경고에서만 separate 검증을 추가하고, FAIL은 최대 1회 재번역한다. 응답의 verificationMethod는 adaptive-self(자가 검사), adaptive-reviewed(추가 검증), separate로 구분된다. 1회 자가 검사 PASS는 독립적인 검증 결과가 아니다.

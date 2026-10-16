@@ -29,6 +29,7 @@ public class AppConfig {
    if (!get("app.mode","mock").matches("mock|live")) throw new IllegalStateException("app.mode must be mock or live");
    if (timeout()<1 || timeout()>20) throw new IllegalStateException("AI timeout must be 1..20 seconds");
    if(qualityBudgetMillis()<1000 || qualityBudgetMillis()>35000)throw new IllegalStateException("Quality budget must be 1000..35000 ms");
+   if(!Set.of("adaptive","separate").contains(verificationStrategy()))throw new IllegalStateException("Unknown verification strategy");
    if(!Set.of(0,5,10).contains(contextLimit()) || contextTtlSeconds()<1 || contextTtlSeconds()>3600)throw new IllegalStateException("Invalid context settings");
    if (!mock()) {
     if (!provider().matches("external|local-qwen|openai|gemini")) throw new IllegalStateException("Unknown AI provider");
@@ -76,6 +77,7 @@ public class AppConfig {
   public boolean push(){return Boolean.parseBoolean(get("app.line.push-enabled","false"));}
   public String botId(){return get("app.line.bot-user-id","");}
   public boolean verificationEnabled(){return Boolean.parseBoolean(get("app.verification.enabled","true"));}
+  public String verificationStrategy(){return get("app.verification.strategy","adaptive");}
   public String verificationProvider(){return get("app.verification.provider",provider());}
   public String verificationBase(){return get("app.verification.base-url",verificationProvider().equals(provider())?aiBase():defaultBase(verificationProvider()));}
   public String verificationModel(){return get("app.verification.model",verificationProvider().equals(provider())?model():defaultModel(verificationProvider()));}

@@ -1,0 +1,26 @@
+{
+	log {
+		output file C:/ai/caddy/logs/runtime.log
+	}
+	storage file_system {
+		root C:/ai/caddy/data
+	}
+}
+
+dsss.mooo.com {
+	@translator path /webhooks/line /actuator/health /admin /admin/* /api/admin/*
+	handle @translator {
+		reverse_proxy 127.0.0.1:8090
+	}
+	# Optional legacy Qwen services remain on the development PC.
+	@ai path /v1 /v1/*
+	handle @ai {
+		reverse_proxy 192.168.1.10:8082
+	}
+	handle {
+		reverse_proxy 192.168.1.10:5173
+	}
+	log {
+		output file C:/ai/caddy/logs/access.log
+	}
+}

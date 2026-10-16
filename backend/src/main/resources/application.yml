@@ -39,6 +39,7 @@ management:
       show-details: never
 app:
   verification:
+    strategy: ${VERIFICATION_STRATEGY:adaptive}
     enabled: ${VERIFICATION_ENABLED:true}
     budget-ms: ${VERIFICATION_BUDGET_MS:30000}
   context:

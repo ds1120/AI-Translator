@@ -15,7 +15,7 @@ public class AdminAiSettings {
   var saved=new HashMap<String,Object>();for(var item:mapper.settings())if(Set.of("app.ai.provider","app.ai.model","app.ai.base-url","app.ai.timeout-seconds").contains(item.settingKey()))saved.put(item.settingKey(),item.settingValue());
   if(!saved.isEmpty()){validate(saved);install(saved);}
  }
- public Map<String,Object> current(){return Map.of("provider",settings.provider(),"model",settings.model(),"baseUrl",settings.aiBase(),"timeoutSeconds",settings.timeout(),"verificationModel",settings.verificationModel(),"verificationEnabled",settings.verificationEnabled(),"mode",settings.mock()?"mock":"live","openaiKeyConfigured",!settings.keyFor("openai").isBlank(),"geminiKeyConfigured",!settings.keyFor("gemini").isBlank());}
+ public Map<String,Object> current(){return Map.of("provider",settings.provider(),"model",settings.model(),"baseUrl",settings.aiBase(),"timeoutSeconds",settings.timeout(),"verificationModel",settings.verificationModel(),"verificationEnabled",settings.verificationEnabled(),"verificationStrategy",settings.verificationStrategy(),"mode",settings.mock()?"mock":"live","openaiKeyConfigured",!settings.keyFor("openai").isBlank(),"geminiKeyConfigured",!settings.keyFor("gemini").isBlank());}
  public synchronized Map<String,Object> update(Update update){
   var lock=settings.configurationLock().writeLock();
   if(!lock.tryLock())throw new org.springframework.web.server.ResponseStatusException(org.springframework.http.HttpStatus.CONFLICT,"번역 처리 중입니다. 완료 후 다시 저장해 주세요.");

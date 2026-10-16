@@ -41,6 +41,7 @@ public class LiveVerificationProvider implements VerificationProvider {
   long remaining=(deadline-System.nanoTime())/1_000_000;
   if(remaining<1000)throw new IllegalStateException("Verification budget exhausted");
   String key=settings.verificationKey();
+  if(settings.verificationProvider().equals("gemini") && model().startsWith("gemma-"))return com.aitranslator.ai.GemmaApiClient.complete(http,model(),key,rules,serialize(data),(int)Math.min(settings.timeout(),remaining/1000));
   var body=new HashMap<String,Object>();body.put("model",model());body.put("messages",List.of(Map.of("role","system","content",rules),Map.of("role","user","content",data instanceof String?data:serialize(data))));
   if(settings.verificationQwen())body.put("chat_template_kwargs",Map.of("enable_thinking",false));
   if(Set.of("openai","gemini").contains(settings.verificationProvider()))body.put("max_completion_tokens",4096);

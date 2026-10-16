@@ -18,6 +18,7 @@ app.line.secret=
 app.line.token=
 # Phase 2: checking runs even when /verification display is hidden.
 app.verification.enabled=true
+app.verification.strategy=adaptive
 app.verification.budget-ms=30000
 app.context.max-messages=10
 app.context.ttl-seconds=600
