@@ -11,6 +11,7 @@ app.ai.provider=local-qwen
 app.ai.base-url=http://127.0.0.1:8082/v1
 app.ai.model=Qwen3-14B
 app.ai.key=
+# Default for conversations without a saved selection: TH, VI, EN, JA.
 app.translation.partner-language=TH
 app.line.push-enabled=false
 app.line.secret=

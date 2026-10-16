@@ -1,6 +1,6 @@
 param(
     [switch]$Configure,
-    [ValidateSet('TH', 'EN', 'JA')][string]$Language
+    [ValidateSet('TH', 'VI', 'EN', 'JA')][string]$Language
 )
 
 $ErrorActionPreference = 'Stop'

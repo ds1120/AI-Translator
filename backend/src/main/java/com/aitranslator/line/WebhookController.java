@@ -21,10 +21,12 @@ public class WebhookController {
   if(root==null || !root.path("events").isArray()) throw new ResponseStatusException(HttpStatus.BAD_REQUEST);
   List<StoredEvent> accepted=new ArrayList<>();
   for(JsonNode e:root.path("events")) {
+   String sourceType=e.path("source").path("type").asText();
    if(!e.path("type").asText().equals("message") || !e.path("mode").asText("active").equals("active")
-    || !e.path("source").path("type").asText().equals("group") || !e.path("message").path("type").asText().equals("text")) continue;
+    || !(sourceType.equals("group") || sourceType.equals("user")) || !e.path("message").path("type").asText().equals("text")) continue;
    if(!settings.botId().isBlank() && e.path("source").path("userId").asText().equals(settings.botId())) continue;
-   String id=e.path("webhookEventId").asText(), group=e.path("source").path("groupId").asText();
+   // Existing group_id columns store the conversation destination (groupId or userId).
+   String id=e.path("webhookEventId").asText(), group=e.path("source").path(sourceType.equals("user")?"userId":"groupId").asText();
    String token=e.path("replyToken").asText(), text=e.path("message").path("text").asText();
    long timestamp=e.path("timestamp").asLong();
    if(id.isBlank()||id.length()>128||group.isBlank()||group.length()>128||token.isBlank()||token.length()>256||text.isBlank()||text.length()>5000||timestamp<=0)

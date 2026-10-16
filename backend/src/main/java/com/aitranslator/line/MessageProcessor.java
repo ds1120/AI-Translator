@@ -27,19 +27,20 @@ public class MessageProcessor {
    boolean command=input.equals("/설정") || input.matches("(?s)^/언어(?:\\s+.*)?$");
    String text;
    if(command){
-    // Stale commands must not overwrite a group's newer language setting.
+    // Stale commands must not overwrite a conversation's newer language setting.
     if(!fresh(e)){state="EXPIRED";return;}
     if(input.equals("/설정"))text=languageStatus(partnerLanguage(e.groupId()));
     else {
      String argument=input.substring("/언어".length()).strip().toUpperCase(Locale.ROOT);
-     Language selected=switch(argument){case "태국어","TH" -> Language.TH;case "영어","EN" -> Language.EN;case "일본어","JA" -> Language.JA;default -> null;};
-     if(selected==null)text="사용법: /언어 태국어 · /언어 영어 · /언어 일본어\n현재 설정 확인: /설정";
-     else {groups.setPartnerLanguage(e.groupId(),selected.name());text="이 그룹의 번역 언어를 변경했습니다.\n"+languageStatus(selected);}
+     Language selected=switch(argument){case "1","태국어","TH" -> Language.TH;case "2","베트남","베트남어","VI" -> Language.VI;case "3","영어","EN" -> Language.EN;case "4","일본어","JA" -> Language.JA;default -> null;};
+     if(selected==null)text="사용법: /언어 1 ~ /언어 4\n"+languageStatus(partnerLanguage(e.groupId()));
+     else {groups.setPartnerLanguage(e.groupId(),selected.name());text="이 대화의 번역 언어를 변경했습니다.\n"+languageStatus(selected);}
     }
    } else {
-    var language=detector.detect(e.originalText());
-    if(language.isEmpty() || input.startsWith("/")){state="IGNORED";return;}
+    if(input.startsWith("/")){state="IGNORED";return;}
     Language partner=partnerLanguage(e.groupId());
+    var language=detector.detect(e.originalText(),partner);
+    if(language.isEmpty()){state="IGNORED";return;}
     if(language.get()!=Language.KO && language.get()!=partner){state="IGNORED";return;}
     Boolean enabled=groups.enabled(e.groupId());
     if(enabled==null){try{groups.insert(e.groupId());}catch(DuplicateKeyException ignored){}enabled=groups.enabled(e.groupId());}
@@ -74,8 +75,10 @@ public class MessageProcessor {
   String saved=groups.partnerLanguage(groupId);return saved==null?settings.partnerLanguage():Language.valueOf(saved);
  }
  private String languageStatus(Language partner){
-  String name=switch(partner){case TH -> "태국어";case EN -> "영어";case JA -> "일본어";default -> throw new IllegalStateException("Invalid group language");};
-  return "현재 번역: 🇰🇷 한국어 ↔ "+partner.flag()+" "+name+"\n그룹 참여자 누구나 /언어 태국어, /언어 영어, /언어 일본어로 변경할 수 있습니다.";
+  String name=switch(partner){case TH -> "태국어";case VI -> "베트남어";case EN -> "영어";case JA -> "일본어";default -> throw new IllegalStateException("Invalid conversation language");};
+  return "현재 번역: 🇰🇷 한국어 ↔ "+partner.flag()+" "+name
+   +"\n\n번역 언어 선택\n1. 한국어 ↔ 태국어\n2. 한국어 ↔ 베트남어\n3. 한국어 ↔ 영어\n4. 한국어 ↔ 일본어"
+   +"\n\n/언어 1 처럼 번호를 보내면 이 대화에 적용됩니다.\n현재 설정 확인: /설정";
  }
  @Scheduled(fixedDelay=3_600_000,initialDelay=60_000)
  public void cleanup(){

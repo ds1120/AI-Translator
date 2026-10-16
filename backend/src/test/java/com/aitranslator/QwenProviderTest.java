@@ -42,7 +42,7 @@ class QwenProviderTest {
   assertThatThrownBy(()->p.translate(request())).hasMessageContaining("truncated");
  }
  @Test void promptsForSelectedLanguagePair()throws Exception{
-  for(var target:List.of(Language.EN,Language.JA)) {
+  for(var target:List.of(Language.EN,Language.JA,Language.VI)) {
    var h=http("translated","stop");var provider=new LocalQwenProvider(h,new Settings(env()));
    provider.translate(new TranslationService.Request("안녕하세요",Language.KO,target,List.of(),Map.of()));
    var payload=ArgumentCaptor.forClass(Object.class);

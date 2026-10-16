@@ -24,7 +24,7 @@ public class AppConfig {
   private final Environment e;
   public Settings(Environment e) {
    this.e=e;
-   if(partnerLanguage()==Language.KO) throw new IllegalStateException("Partner language must be TH, EN or JA");
+   if(partnerLanguage()==Language.KO) throw new IllegalStateException("Partner language must be TH, VI, EN or JA");
    if (!get("app.mode","mock").matches("mock|live")) throw new IllegalStateException("app.mode must be mock or live");
    if (timeout()<1 || timeout()>20) throw new IllegalStateException("AI timeout must be 1..20 seconds");
    if (!mock()) {
@@ -45,7 +45,7 @@ public class AppConfig {
   public boolean mock(){return get("app.mode","mock").equals("mock");}
   public Language partnerLanguage(){
    try {return Language.valueOf(get("app.translation.partner-language","TH").strip().toUpperCase(Locale.ROOT));}
-   catch(IllegalArgumentException ex){throw new IllegalStateException("Partner language must be TH, EN or JA",ex);}
+   catch(IllegalArgumentException ex){throw new IllegalStateException("Partner language must be TH, VI, EN or JA",ex);}
   }
   public String secret(){return get("app.line.secret","");}
   public String token(){return get("app.line.token","");}

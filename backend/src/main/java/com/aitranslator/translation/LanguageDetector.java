@@ -3,6 +3,10 @@ import java.util.Optional;
 import org.springframework.stereotype.Component;
 @Component
 public class LanguageDetector {
+ public Optional<Language> detect(String text,Language partner) {
+  // Latin-only text follows the selected pair, including Vietnamese without tone marks.
+  return detect(text).map(language -> language==Language.EN && partner==Language.VI?Language.VI:language);
+ }
  public Optional<Language> detect(String text) {
   boolean ko=text.codePoints().anyMatch(c -> (c>=0xAC00&&c<=0xD7A3)||(c>=0x1100&&c<=0x11FF)||(c>=0x3131&&c<=0x318E));
   boolean th=text.codePoints().anyMatch(c -> c>=0x0E01&&c<=0x0E5B && Character.isLetter(c));

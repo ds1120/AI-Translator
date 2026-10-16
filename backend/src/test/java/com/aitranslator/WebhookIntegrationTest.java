@@ -30,6 +30,10 @@ class WebhookIntegrationTest {
     "replyToken","test-token","source",Map.of("type","group","groupId",group,"userId",user),"message",Map.of("type","text","id","m1","text",text)))));
  }
  private String body(String id,String text)throws Exception{return body(id,text,"group-test","user-test","active",System.currentTimeMillis());}
+ private String directBody(String id,String user,String text)throws Exception {
+  return json.writeValueAsString(Map.of("events",List.of(Map.of("type","message","webhookEventId",id,"timestamp",System.currentTimeMillis(),
+   "replyToken","test-token","source",Map.of("type","user","userId",user),"message",Map.of("type","text","text",text)))));
+ }
  private String signature(String body)throws Exception {
   Mac mac=Mac.getInstance("HmacSHA256");mac.init(new SecretKeySpec("mock-channel-secret".getBytes(StandardCharsets.UTF_8),"HmacSHA256"));
   return Base64.getEncoder().encodeToString(mac.doFinal(body.getBytes(StandardCharsets.UTF_8)));
@@ -82,7 +86,7 @@ class WebhookIntegrationTest {
   assertThat(events.state("bot")).isNull();assertThat(events.state("standby")).isNull();assertThat(line.messages()).isEmpty();
  }
  @Test void nonGroupAndNonTextAreIgnored()throws Exception {
-  postBody("{\"events\":[{\"type\":\"message\",\"source\":{\"type\":\"user\"},\"message\":{\"type\":\"text\"}},{\"type\":\"message\",\"source\":{\"type\":\"group\"},\"message\":{\"type\":\"image\"}}]}");
+  postBody("{\"events\":[{\"type\":\"message\",\"source\":{\"type\":\"room\"},\"message\":{\"type\":\"text\"}},{\"type\":\"message\",\"source\":{\"type\":\"group\"},\"message\":{\"type\":\"image\"}}]}");
   assertThat(events.pending()).isEmpty();assertThat(line.messages()).isEmpty();
  }
  @Test void failedProviderIsTerminalAndDoesNotSend()throws Exception {
@@ -141,5 +145,37 @@ class WebhookIntegrationTest {
   postBody(body("stale-command","/언어 영어","group-test","member","active",System.currentTimeMillis()-120_000));finished("stale-command","EXPIRED");
   assertThat(db.queryForObject("SELECT COUNT(*) FROM chat_group_languages",Integer.class)).isZero();
   assertThat(line.messages()).isEmpty();
+ }
+ @Test void directChatShowsNumberedMenuAndSupportsAllFourPairs()throws Exception {
+  postBody(directBody("dm-menu","user-a","/설정"));finished("dm-menu","SENT");
+  assertThat(line.messages().getLast().text()).contains("1. 한국어 ↔ 태국어","2. 한국어 ↔ 베트남어","3. 한국어 ↔ 영어","4. 한국어 ↔ 일본어","/언어 1");
+  String[] expected={"สวัสดีค่ะ","Xin chào","Hello","こんにちは"};
+  String[] codes={"TH","VI","EN","JA"};
+  for(int number=1;number<=4;number++) {
+   String setId="dm-set-"+number;
+   postBody(directBody(setId,"user-a","/언어 "+number));finished(setId,"SENT");
+   assertThat(db.queryForObject("SELECT partner_language FROM chat_group_languages WHERE group_id='user-a'",String.class)).isEqualTo(codes[number-1]);
+   postBody(directBody("dm-out-"+number,"user-a","안녕하세요"));finished("dm-out-"+number,"SENT");
+   assertThat(line.messages().getLast().text()).endsWith(expected[number-1]);
+   postBody(directBody("dm-in-"+number,"user-a",expected[number-1]));finished("dm-in-"+number,"SENT");
+   assertThat(line.messages().getLast().text()).isEqualTo("[MOCK] 🇰🇷 안녕하세요");
+  }
+ }
+ @Test void directChatSettingsAreIsolatedFromOtherUsersAndGroups()throws Exception {
+  postBody(directBody("alice-set","user-alice","/언어 2"));finished("alice-set","SENT");
+  postBody(directBody("bob-set","user-bob","/언어 3"));finished("bob-set","SENT");
+  postBody(directBody("alice-query","user-alice","/설정"));finished("alice-query","SENT");
+  assertThat(line.messages().getLast().text()).contains("한국어 ↔ 🇻🇳 베트남어");
+  postBody(directBody("bob-query","user-bob","/설정"));finished("bob-query","SENT");
+  assertThat(line.messages().getLast().text()).contains("한국어 ↔ 🇺🇸 영어");
+  postBody(body("group-query","/설정"));finished("group-query","SENT");
+  assertThat(line.messages().getLast().text()).contains("한국어 ↔ 🇹🇭 태국어");
+  postBody(directBody("invalid-number","user-alice","/언어 5"));finished("invalid-number","SENT");
+  assertThat(line.messages().getLast().text()).contains("사용법:","한국어 ↔ 🇻🇳 베트남어");
+ }
+ @Test void directChatRequiresUserId()throws Exception {
+  String missing=directBody("missing-user","","/설정");
+  mvc.perform(post("/webhooks/line").contentType("application/json").content(missing).header("X-Line-Signature",signature(missing))).andExpect(status().isBadRequest());
+  assertThat(events.pending()).isEmpty();
  }
 }
