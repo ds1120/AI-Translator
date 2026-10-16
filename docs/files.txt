@@ -28,11 +28,14 @@ backend/src/test/java/com/aitranslator/LanguageDetectorTest.java
 backend/src/test/java/com/aitranslator/ProviderAndDeliveryTest.java
 backend/src/test/java/com/aitranslator/WebhookIntegrationTest.java
 database/001-schema.sql
+docker-compose.yml
 docker/Dockerfile
 docker/nginx.conf
-docker-compose.yml
 docs/architecture.md
+docs/files.txt
 docs/line-setup.md
+docs/railway-deploy.md
 docs/validation.md
 frontend/README.md
+railway.json
 scripts/mock-webhook.py

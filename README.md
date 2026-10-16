@@ -39,6 +39,10 @@ python scripts/mock-webhook.py --text "พรุ่งนี้เจอกั�
 
 각 명령은 같은 이벤트를 두 번 보내며 HTTP 200을 두 번 받는다. 백엔드 로그에는 `outcome=SENT`가 한 번만 남아야 한다. Mock 회신은 내부 메모리 sink로 전달되며 실제 LINE으로 전송하지 않는다. 자동 통합 테스트가 정확한 회신 문구까지 검증한다. 종료는 Ctrl+C. Mock DB는 재시작 시 초기화된다.
 
+## Railway 클라우드 배포
+
+[Railway 배포 가이드](docs/railway-deploy.md)에 MariaDB 영속 볼륨, 비밀 환경변수, 공개 HTTPS와 LINE 연결 절차를 정리했다. 계정 연결과 실제 배포는 별도 진행해야 한다.
+
 ## 실제 LINE 봇 연결
 
 자세한 절차: [LINE 설정 가이드](docs/line-setup.md).
