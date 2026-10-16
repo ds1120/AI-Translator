@@ -17,9 +17,9 @@ mvn spring-boot:run
 
 빌드된 JAR가 포함된 배포 ZIP에서는 프로젝트 루트에서 `java -jar backend/target/ai-translator-0.1.0.jar`로도 바로 실행할 수 있다 (Java 21 필요).
 
-기본 profile은 `mock`이다. 내장 H2 메모리 DB라 MariaDB/Redis/LINE/AI 키가 필요 없다. 서버는 기본 `127.0.0.1:8080`에 바인딩한다.
+기본 profile은 `mock`이다. 내장 H2 메모리 DB라 MariaDB/Redis/LINE/AI 키가 필요 없다. 서버는 기본 `127.0.0.1:8090`에 바인딩한다.
 
-- 상태 확인: http://localhost:8080/actuator/health
+- 상태 확인: http://localhost:8090/actuator/health
 - `/`에는 화면이 없으며 403 응답이 정상이다.
 - Mock은 아래 **고정 문장만** 번역한다. 일반 문장 번역 능력은 없으며 `[MOCK]` 표식을 붙인다.
 
@@ -64,7 +64,7 @@ Compose는 DB와 백엔드를 외부 포트로 열지 않고 Nginx만 localhost:
 ```powershell
 Copy-Item .env.example .env
 # .env에 실제 값 입력
-# Mock 서버가 8080에서 실행 중이면 Ctrl+C로 종료
+# Mock 서버가 8090에서 실행 중이면 Ctrl+C로 종료
 docker compose up --build -d
 docker compose logs -f backend
 ```

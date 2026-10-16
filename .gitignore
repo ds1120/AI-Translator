@@ -9,3 +9,4 @@
 .vscode/
 *.log
 *.db
+backend/data/

@@ -4,6 +4,14 @@
 
 번역 서버는 `LocalQwenProvider`로 연결한다. 인증키가 없는 Qwen API에는 Authorization 헤더를 보내지 않는다. 키가 설정되어 있으면 Bearer 인증을 사용한다. 외부 유료 LLM은 호출하지 않는다. `enable_thinking=false`, 최대 출력 512 토큰을 요청하며, 출력이 잘리거나 추론 태그가 완결되지 않으면 회신하지 않고 실패 처리한다. API 구현이 옵션을 실제로 적용하는지는 서버 설정에 따라 다르다.
 
+## Windows 로컬 실행 (파일 DB)
+
+프로젝트 루트의 PowerShell에서 `./scripts/start-qwen.ps1`을 실행한다. 기존 서버는 먼저 Ctrl+C로 종료한다. 로컬 Qwen `http://127.0.0.1:8082/v1`, 번역 서버 8090, 파일형 H2 DB `backend/data/translator`를 사용한다. Push는 비활성화한다.
+
+처음 실행할 때 LINE Channel Secret과 Channel Access Token을 숨김 입력으로 받는다. 현재 셸에 설정된 값이 있으면 재사용한다. 두 값은 `.env.line.credentials.xml`에 Windows 계정별로 암호화하여 저장하며, 다음 실행부터 자동으로 읽는다. 이 파일은 Git에서 제외되고 동일한 PC의 동일한 Windows 계정에서만 복호화할 수 있다. JAR를 직접 실행하면 이 파일을 읽지 않으므로 스크립트로 실행한다.
+
+키를 변경하거나 서버를 종료하지 않고 미리 저장하려면 `./scripts/start-qwen.ps1 -Configure`를 실행한다. 안내가 나온 뒤 실제 값을 입력한다. 저장한 값을 실행 중인 서버에 적용하려면 재시작해야 한다.
+
 ## Windows Docker 실행
 
 필수: Windows 10에서 Docker Desktop(WSL2 기반) 사용 가능한 환경, Git. 기존 사용 중인 Docker가 있다면 새로 설치할 필요 없다.
@@ -25,6 +33,6 @@ docker compose --env-file .env.qwen logs -f backend
 
 ## LINE Webhook 주소는 별도
 
-`https://dsss.mooo.com/v1`은 **AI 추론 API 주소**이며 LINE Webhook URL이 아니다. LINE은 번역 서버의 `/webhooks/line`으로 연결해야 한다. 번역 서버를 실행한 뒤 무료 HTTPS 터널이나 기존 reverse proxy에 별도 경로를 추가한다. 예를 들어 실제 프록시가 `/webhooks/line`을 PC의 8080으로 전달하도록 구성된 경우에만 그 공개 주소를 등록한다. 기존 Qwen API 경로 `/v1`을 덮어쓰지 않는다.
+`https://dsss.mooo.com/v1`은 **AI 추론 API 주소**이며 LINE Webhook URL이 아니다. LINE은 번역 서버의 `/webhooks/line`으로 연결해야 한다. 번역 서버를 실행한 뒤 무료 HTTPS 터널이나 기존 reverse proxy에 별도 경로를 추가한다. 예를 들어 실제 프록시가 `/webhooks/line`을 PC의 8090으로 전달하도록 구성된 경우에만 그 공개 주소를 등록한다. 기존 Qwen API 경로 `/v1`을 덮어쓰지 않는다.
 
 현재 작업 환경에서 집 PC에 접속할 권한/연결은 없으므로 PC 설치·실행·프록시 변경은 아직 수행하지 않았다. 공개 API가 현재 인증 없이 응답하므로 외부 접근 범위와 인증은 운영자가 확인한다. 모델 추론 자체는 로컬 GPU이며 외부 AI API 사용료는 없으나 전기/기존 도메인·네트워크 비용은 별개다.

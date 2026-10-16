@@ -14,7 +14,7 @@ spring:
     banner-mode: off
 server:
   address: ${SERVER_ADDRESS:127.0.0.1}
-  port: ${SERVER_PORT:${PORT:8080}}
+  port: ${SERVER_PORT:${PORT:8090}}
   error:
     include-message: never
     include-stacktrace: never

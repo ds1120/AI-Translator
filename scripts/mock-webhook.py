@@ -2,7 +2,7 @@
 """Send a signed webhook without LINE credentials. Default key is mock-only."""
 import argparse, base64, hashlib, hmac, json, time, urllib.request, uuid
 p=argparse.ArgumentParser()
-p.add_argument('--url',default='http://127.0.0.1:8080/webhooks/line')
+p.add_argument('--url',default='http://127.0.0.1:8090/webhooks/line')
 p.add_argument('--text',default='내일 아침 9시에 출발할게.')
 p.add_argument('--repeat',type=int,default=2)
 a=p.parse_args()
