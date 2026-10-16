@@ -1,0 +1,17 @@
+# Copy to config/application.properties and fill in your LINE credentials.
+# Run java -jar from the project root. Spring Boot loads this file automatically.
+spring.profiles.active=qwen
+server.address=127.0.0.1
+server.port=8090
+spring.datasource.url=jdbc:h2:file:./backend/data/translator;MODE=MariaDB;DB_CLOSE_ON_EXIT=FALSE
+spring.datasource.username=sa
+spring.datasource.password=
+app.mode=live
+app.ai.provider=local-qwen
+app.ai.base-url=http://127.0.0.1:8082/v1
+app.ai.model=Qwen3-14B
+app.ai.key=
+app.translation.partner-language=TH
+app.line.push-enabled=false
+app.line.secret=
+app.line.token=

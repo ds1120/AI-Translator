@@ -6,11 +6,11 @@
 
 ## Windows 로컬 실행 (파일 DB)
 
-프로젝트 루트의 PowerShell에서 `./scripts/start-qwen.ps1`을 실행한다. 기존 서버는 먼저 Ctrl+C로 종료한다. 로컬 Qwen `http://127.0.0.1:8082/v1`, 번역 서버 8090, 파일형 H2 DB `backend/data/translator`를 사용한다. Push는 비활성화한다.
+프로젝트 루트에서 `config/application.properties.example`을 `config/application.properties`로 한 번 복사하고 `app.line.secret`, `app.line.token`을 채운다. 실제 설정 파일은 Git에서 제외된다. 기존 XML에 저장한 인증정보는 더 이상 사용하지 않는다.
 
-처음 실행할 때 LINE Channel Secret과 Channel Access Token을 숨김 입력으로 받는다. 현재 셸에 설정된 값이 있으면 재사용한다. 두 값은 `.env.line.credentials.xml`에 Windows 계정별로 암호화하여 저장하며, 다음 실행부터 자동으로 읽는다. 이 파일은 Git에서 제외되고 동일한 PC의 동일한 Windows 계정에서만 복호화할 수 있다. JAR를 직접 실행하면 이 파일을 읽지 않으므로 스크립트로 실행한다.
+이후 프로젝트 루트에서 `java -jar backend/target/ai-translator-0.1.0.jar`만 실행한다. Spring Boot가 설정 파일을 자동으로 읽으므로 키·토큰을 다시 입력하거나 별도 스크립트를 사용할 필요 없다. 실행 중인 서버는 먼저 Ctrl+C로 종료한다. 로컬 Qwen `http://127.0.0.1:8082/v1`, 번역 서버 8090, 파일형 H2 DB `backend/data/translator`를 사용한다. Push는 비활성화한다.
 
-키를 변경하거나 서버를 종료하지 않고 미리 저장하려면 `./scripts/start-qwen.ps1 -Configure`를 실행한다. 안내가 나온 뒤 실제 값을 입력한다. 저장한 값을 실행 중인 서버에 적용하려면 재시작해야 한다.
+설정을 변경하려면 `config/application.properties`를 편집하고 서버를 재시작한다. 자세한 파일 위치·설정 예제와 LINE 그룹 명령어는 [README](../README.md)를 참고한다.
 
 ## Windows Docker 실행
 

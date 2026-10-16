@@ -10,3 +10,4 @@
 *.log
 *.db
 backend/data/
+/config/application.properties
