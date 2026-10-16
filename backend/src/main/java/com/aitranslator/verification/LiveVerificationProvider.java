@@ -43,7 +43,9 @@ public class LiveVerificationProvider implements VerificationProvider {
   String key=settings.verificationKey();
   var body=new HashMap<String,Object>();body.put("model",model());body.put("messages",List.of(Map.of("role","system","content",rules),Map.of("role","user","content",data instanceof String?data:serialize(data))));
   if(settings.verificationQwen())body.put("chat_template_kwargs",Map.of("enable_thinking",false));
-  body.put("max_tokens",512);body.put("temperature",0.1);
+  if(Set.of("openai","gemini").contains(settings.verificationProvider()))body.put("max_completion_tokens",4096);
+  else {body.put("max_tokens",512);body.put("temperature",0.1);}
+  if(settings.verificationProvider().equals("gemini"))body.put("reasoning_effort",model().startsWith("gemini-2.5-flash")?"none":"low");
   var response=http.post(settings.verificationBase().replaceAll("/$","")+"/chat/completions",key.isBlank()?Map.of():Map.of("Authorization","Bearer "+key),body,(int)Math.min(settings.timeout(),remaining/1000));
   if(response.status()!=200)throw new IllegalStateException("Verification HTTP status "+response.status());
   var choice=http.parse(response.body()).path("choices").path(0);

@@ -15,7 +15,7 @@ import java.util.*;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.*;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
 import static org.assertj.core.api.Assertions.*;
-@SpringBootTest(properties={"spring.config.location=classpath:/","spring.datasource.url=jdbc:h2:mem:admin-tests;MODE=MariaDB;DB_CLOSE_DELAY=-1","app.admin.password=test-admin-password","app.worker.delay-ms=10000"})
+@SpringBootTest(properties={"spring.config.location=classpath:/","spring.datasource.url=jdbc:h2:mem:admin-tests;MODE=MariaDB;DB_CLOSE_DELAY=-1","app.admin.password=test-admin-password","app.worker.delay-ms=10000","app.ai.gemini.key=gemini-test-fixture","app.ai.openai.key=openai-test-fixture"})
 @AutoConfigureMockMvc @ActiveProfiles("mock")
 class AdminIntegrationTest {
  @Autowired MockMvc mvc;@Autowired ObjectMapper json;@Autowired JdbcTemplate db;@Autowired ConfigurableEnvironment environment;
@@ -66,5 +66,14 @@ class AdminIntegrationTest {
  @Test void errorLogContainsOnlySafeMetadata()throws Exception {
   errors.record("AI",503,"HTTP_ERROR");var session=login();var response=mvc.perform(get("/api/admin/errors").session(session.session())).andExpect(status().isOk()).andReturn();
   assertThat(response.getResponse().getContentAsString()).contains("HTTP_ERROR","503").doesNotContain("Authorization","replyToken","originalText");
+ }
+ @Test void cloudSettingsPersistWithoutReturningOrSavingApiKeys()throws Exception {
+  var session=login();
+  for(String provider:List.of("gemini","openai")){
+   String body=json.writeValueAsString(Map.of("provider",provider,"model",com.aitranslator.config.AppConfig.Settings.defaultModel(provider),"baseUrl",com.aitranslator.config.AppConfig.Settings.defaultBase(provider),"timeoutSeconds",20));
+   var response=mvc.perform(put("/api/admin/ai").session(session.session()).header(session.header(),session.token()).contentType("application/json").content(body)).andExpect(status().isOk()).andExpect(jsonPath("$.provider").value(provider)).andExpect(jsonPath("$.geminiKeyConfigured").value(true)).andExpect(jsonPath("$.openaiKeyConfigured").value(true)).andReturn();
+   assertThat(response.getResponse().getContentAsString()).doesNotContain("gemini-test-fixture","openai-test-fixture");
+  }
+  assertThat(mapper.settings()).hasSize(4);assertThat(mapper.settings().toString()).doesNotContain("gemini-test-fixture","openai-test-fixture");
  }
 }

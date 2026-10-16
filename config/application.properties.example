@@ -29,3 +29,7 @@ app.context.ttl-seconds=600
 # Administrator login. Empty password disables login. Use at least 12 characters.
 app.admin.username=admin
 app.admin.password=
+
+# External services: enter keys here, never in chat or Git.
+app.ai.gemini.key=
+app.ai.openai.key=

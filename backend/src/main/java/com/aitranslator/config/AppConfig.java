@@ -31,10 +31,12 @@ public class AppConfig {
    if(qualityBudgetMillis()<1000 || qualityBudgetMillis()>35000)throw new IllegalStateException("Quality budget must be 1000..35000 ms");
    if(!Set.of(0,5,10).contains(contextLimit()) || contextTtlSeconds()<1 || contextTtlSeconds()>3600)throw new IllegalStateException("Invalid context settings");
    if (!mock()) {
-    if (!provider().matches("external|local-qwen")) throw new IllegalStateException("Unknown AI provider");
+    if (!provider().matches("external|local-qwen|openai|gemini")) throw new IllegalStateException("Unknown AI provider");
     for (String key : new String[]{"app.line.secret","app.line.token"})
      if (get(key, "").isBlank()) throw new IllegalStateException("Missing required setting: " + key);
     if (provider().equals("external") && get("app.ai.key", "").isBlank()) throw new IllegalStateException("Missing required setting: app.ai.key");
+    if (Set.of("openai","gemini").contains(provider()) && aiKey().isBlank()) throw new IllegalStateException("Missing required setting: app.ai."+provider()+".key");
+    validateNamedEndpoint(provider(),aiBase());
     URI uri=URI.create(aiBase());
     boolean loopback=Set.of("localhost","127.0.0.1","[::1]","::1").contains(uri.getHost()==null?"":uri.getHost());
     boolean secure="https".equals(uri.getScheme());
@@ -42,7 +44,8 @@ public class AppConfig {
      || (!secure && !(provider().equals("local-qwen") && loopback && "http".equals(uri.getScheme()))))
      throw new IllegalStateException("AI requires HTTPS; local Qwen may use loopback HTTP");
     if(verificationEnabled()){
-     if(!get("app.verification.provider",provider()).matches("external|local-qwen"))throw new IllegalStateException("Unknown verification provider");
+     if(!verificationProvider().matches("external|local-qwen|openai|gemini"))throw new IllegalStateException("Unknown verification provider");
+     validateNamedEndpoint(verificationProvider(),verificationBase());
      URI verification=URI.create(verificationBase());
      boolean local=Set.of("localhost","127.0.0.1","[::1]","::1").contains(verification.getHost()==null?"":verification.getHost());
      if(verification.getHost()==null || verification.getUserInfo()!=null || verification.getQuery()!=null || verification.getFragment()!=null
@@ -61,17 +64,23 @@ public class AppConfig {
   }
   public String secret(){return get("app.line.secret","");}
   public String token(){return get("app.line.token","");}
-  public String aiBase(){return get("app.ai.base-url","https://api.openai.com/v1");}
+  public static String defaultBase(String provider){return provider.equals("gemini")?"https://generativelanguage.googleapis.com/v1beta/openai":"https://api.openai.com/v1";}
+  public static String defaultModel(String provider){return provider.equals("gemini")?"gemini-3.8-flash":"gpt-4.1-mini";}
+  private void validateNamedEndpoint(String provider,String base){if(Set.of("openai","gemini").contains(provider) && !base.replaceAll("/$","").equals(defaultBase(provider)))throw new IllegalStateException("Named provider must use its official API endpoint");}
+  public String aiBase(){return get("app.ai.base-url",defaultBase(provider()));}
+  public String keyFor(String provider){return Set.of("openai","gemini").contains(provider)?get("app.ai."+provider+".key",""):get("app.ai.key","");}
+  public String aiKey(){return keyFor(provider());}
   public String provider(){return get("app.ai.provider","external");}
-  public String model(){return get("app.ai.model","gpt-4.1-mini");}
+  public String model(){return get("app.ai.model",defaultModel(provider()));}
   public int timeout(){return Integer.parseInt(get("app.ai.timeout-seconds","15"));}
   public boolean push(){return Boolean.parseBoolean(get("app.line.push-enabled","false"));}
   public String botId(){return get("app.line.bot-user-id","");}
   public boolean verificationEnabled(){return Boolean.parseBoolean(get("app.verification.enabled","true"));}
-  public String verificationBase(){return get("app.verification.base-url",aiBase());}
-  public String verificationModel(){return get("app.verification.model",model());}
-  public String verificationKey(){return get("app.verification.key",verificationBase().equals(aiBase())?get("app.ai.key",""):"");}
-  public boolean verificationQwen(){return get("app.verification.provider",provider()).equals("local-qwen");}
+  public String verificationProvider(){return get("app.verification.provider",provider());}
+  public String verificationBase(){return get("app.verification.base-url",verificationProvider().equals(provider())?aiBase():defaultBase(verificationProvider()));}
+  public String verificationModel(){return get("app.verification.model",verificationProvider().equals(provider())?model():defaultModel(verificationProvider()));}
+  public String verificationKey(){return get("app.verification.key",Set.of("openai","gemini").contains(verificationProvider())?keyFor(verificationProvider()):verificationBase().equals(aiBase()) && verificationProvider().equals(provider())?aiKey():"");}
+  public boolean verificationQwen(){return verificationProvider().equals("local-qwen");}
   public int qualityBudgetMillis(){return Integer.parseInt(get("app.verification.budget-ms","30000"));}
   public int contextLimit(){return Integer.parseInt(get("app.context.max-messages","10"));}
   public int contextTtlSeconds(){return Integer.parseInt(get("app.context.ttl-seconds","600"));}

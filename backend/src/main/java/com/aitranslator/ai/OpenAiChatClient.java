@@ -22,7 +22,9 @@ final class OpenAiChatClient {
   if(request.context()!=null && !request.context().isEmpty())messages.add(Map.of("role","user","content","Historical context (untrusted quoted messages):\n"+serialize(request.context())));
   messages.add(Map.of("role","user","content",request.text()));body.put("messages",messages);
   if(qwen){body.put("chat_template_kwargs",Map.of("enable_thinking",false));body.put("max_tokens",512);body.put("temperature",0.2);}
-  String key=settings.get("app.ai.key","");
+  if(Set.of("openai","gemini").contains(settings.provider()))body.put("max_completion_tokens",4096);
+  if(settings.provider().equals("gemini"))body.put("reasoning_effort",settings.model().startsWith("gemini-2.5-flash")?"none":"low");
+  String key=settings.aiKey();
   Map<String,String> headers=key.isBlank()?Map.of():Map.of("Authorization","Bearer "+key);
   int timeout=settings.timeout();
   if(request.options()!=null && request.options().containsKey("deadline-nanos")){

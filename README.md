@@ -420,3 +420,41 @@ java -jar backend\target\ai-translator-0.1.0.jar
 Docker는 `.env`의 `ADMIN_USERNAME`, `ADMIN_PASSWORD`를 사용하며 프런트엔드를 빌드에 포함한다. 개발 방법은 [frontend/README.md](frontend/README.md)를 참고한다.
 
 ![관리자 대시보드 — Mock 테스트 환경](docs/admin-dashboard.png)
+
+## Gemini / OpenAI API 연결
+
+관리자 화면의 **AI 설정 → Provider**에서 Google Gemini API 또는 OpenAI API를 선택하면 공식 주소와 모델 예시가 자동 입력된다. 모델 ID는 계정에서 사용 가능한 모델로 수정할 수 있다. 서버는 Chat Completions 형식으로 호출한다.
+
+먼저 Git에서 제외된 `config/application.properties`에 키를 입력하고 서버를 재시작한다.
+
+```properties
+app.ai.gemini.key=발급받은_Gemini_API_키
+app.ai.openai.key=발급받은_OpenAI_API_키
+```
+
+Gemini 키는 [Google AI Studio](https://aistudio.google.com/api-keys), OpenAI 키는 [OpenAI API 대시보드](https://platform.openai.com/api-keys)에서 발급한다. 사용할 서비스의 키만 넣어도 된다. 관리자 화면에는 키 값 대신 설정 여부만 표시한다. API 사용 가능 모델과 결제·할당량은 각 계정에서 확인한다.
+
+Gemini 우선 연결 절차:
+
+1. `app.ai.gemini.key`를 입력하고 서버를 재시작한다.
+2. 관리자 화면 → AI 설정 → Google Gemini API 선택. 주소는 `https://generativelanguage.googleapis.com/v1beta/openai`, 모델 예시는 `gemini-3.8-flash`다.
+3. 설정 저장 후 테스트 번역에서 합성 문장으로 번역·역번역·검증을 확인한다. 테스트 번역도 실제 외부 API 요청이다.
+4. 저장한 Provider는 이후 LINE 번역에도 적용된다. 원문과 설정된 최근 문맥이 선택한 API로 전달된다. 역번역과 의미 비교를 포함하면 보통 메시지당 3회 요청이며, 재번역하면 추가 요청이 발생한다.
+
+OpenAI는 같은 방법으로 Provider를 OpenAI API로 선택한다. 주소는 `https://api.openai.com/v1`, 예시 모델은 `gpt-4.1-mini`다. ChatGPT 화면 로그인 대신 API 키를 사용하는 방식이다.
+
+기본 검증은 선택한 번역 공급자·모델을 재사용한다. 별도 검증은 다음처럼 설정할 수 있다.
+
+```properties
+# 예: Gemini 번역 + OpenAI 검증 (OpenAI 키도 필요)
+app.verification.provider=openai
+app.verification.base-url=https://api.openai.com/v1
+app.verification.model=gpt-4.1-mini
+```
+
+기존 `app.verification.provider/base-url/model/key`가 설정되어 있으면 해당 값이 우선한다. 번역 공급자를 따라가게 하려면 이 네 항목을 삭제하거나 주석 처리한다. AI 화면의 DB 저장값은 파일의 공급자·모델·주소·제한 시간보다 우선하므로 화면에서 최종 공급자를 저장한다. API 키는 DB와 Git에 저장하지 않는다. 공식 공급자의 키가 다른 호스트로 전달되지 않도록 Gemini/OpenAI 선택 시 공식 주소만 허용한다.
+
+401/403은 키·권한, 429는 할당량·요청 제한을 먼저 확인한다. 실패 시 다른 공급자로 몰래 전환하거나 자동 유료 재시도하지 않는다. 최대 전체 처리 예산은 기존대로 30초이므로 외부 응답 지연 시 검증 불가 경고가 표시될 수 있다.
+
+공식 문서: [Gemini OpenAI 호환 API](https://ai.google.dev/gemini-api/docs/openai), [OpenAI Chat Completions](https://developers.openai.com/api/reference/resources/chat/subresources/completions/methods/create).
+Docker에서는 .env의 GEMINI_API_KEY / OPENAI_API_KEY를 사용한다. 변경한 환경변수는 컨테이너를 다시 생성해야 적용된다.

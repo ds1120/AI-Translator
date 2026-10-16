@@ -28,6 +28,8 @@ services:
       CONTEXT_TTL_SECONDS: ${CONTEXT_TTL_SECONDS:-600}
       APP_ADMIN_USERNAME: ${ADMIN_USERNAME:-admin}
       APP_ADMIN_PASSWORD: ${ADMIN_PASSWORD:-}
+      APP_AI_GEMINI_KEY: ${GEMINI_API_KEY:-}
+      APP_AI_OPENAI_KEY: ${OPENAI_API_KEY:-}
       DB_URL: jdbc:mariadb://database:3306/ai_translator
       DB_USER: ai_translator
       DB_PASSWORD: ${DB_PASSWORD:?Set DB_PASSWORD}
