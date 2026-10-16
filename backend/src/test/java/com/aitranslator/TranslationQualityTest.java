@@ -42,7 +42,7 @@ class TranslationQualityTest {
  }
  @Test void nonDangerousFailAlwaysShowsWarningAndNoFurtherRetry(){
   when(provider.translate(any())).thenReturn("candidate");when(checker.check(any(),anyString(),anyLong())).thenReturn(report(VerificationReport.Status.FAIL,false));
-  var result=service().translate(request());assertThat(result.blocked()).isFalse();assertThat(VerificationFormatter.format(Language.TH,result,"hidden")).contains("candidate","FAIL","긍정·부정");verify(provider,times(2)).translate(any());
+  var result=service().translate(request());assertThat(result.blocked()).isFalse();assertThat(VerificationFormatter.format(Language.TH,result,"hidden")).contains("candidate","❌","긍정·부정").doesNotContain("FAIL","검증:");verify(provider,times(2)).translate(any());
  }
  @Test void unavailableVerifierNeverClaimsPass(){
   when(provider.translate(any())).thenReturn("candidate");when(checker.check(any(),anyString(),anyLong())).thenReturn(VerificationReport.unavailable("checker"));
@@ -51,7 +51,9 @@ class TranslationQualityTest {
  }
  @Test void displayModesAffectPresentationOnly(){
   var result=new TranslationService.Result("candidate","model",10,"역번역",VerificationReport.Status.PASS,List.of(),"checker",1,false,true);
-  assertThat(VerificationFormatter.format(Language.TH,result,"all")).contains("역번역");assertThat(VerificationFormatter.format(Language.TH,result,"warnings")).doesNotContain("역번역");assertThat(VerificationFormatter.format(Language.TH,result,"hidden")).doesNotContain("검증:");
+  assertThat(VerificationFormatter.format(Language.TH,result,"all")).isEqualTo("🇹🇭 candidate\n\n✅\n🔄 역번역");assertThat(VerificationFormatter.format(Language.TH,result,"warnings")).doesNotContain("🔄");assertThat(VerificationFormatter.format(Language.TH,result,"hidden")).isEqualTo("🇹🇭 candidate");
+  var warning=new TranslationService.Result("candidate","model",10,"역번역",VerificationReport.Status.WARNING,List.of("NUMBER"),"checker",1,false,true);
+  assertThat(VerificationFormatter.format(Language.TH,warning,"warnings")).isEqualTo("🇹🇭 candidate\n\n⚠️ 숫자\n🔄 역번역");
  }
  @Test void shortRemainingBudgetSkipsRetry(){
   when(provider.translate(any())).thenReturn("candidate");when(checker.check(any(),anyString(),anyLong())).thenReturn(report(VerificationReport.Status.FAIL,true));
