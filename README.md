@@ -41,7 +41,46 @@ python scripts/mock-webhook.py --text "พรุ่งนี้เจอกั�
 
 ## 집 PC의 Qwen 사용 — 현재 진행 방식
 
-Windows 10 + 기존 OpenAI 호환 `Qwen3-14B` API를 지원한다. 외부 유료 AI 대신 `LocalQwenProvider`를 선택하며, [Windows Qwen 실행 가이드](docs/windows-qwen.md)와 `.env.qwen.example`을 사용한다. LINE Webhook URL은 Qwen `/v1` 주소와 별도다. 집 PC 실행/공개 HTTPS 연결은 아직 별도 진행해야 한다.
+Windows 10 + 기존 OpenAI 호환 `Qwen3-14B` API를 지원한다. 외부 유료 AI 대신 `LocalQwenProvider`를 선택한다. 로컬 실행은 아래 PowerShell 스크립트를 사용하며, Docker 실행은 [Windows Qwen 실행 가이드](docs/windows-qwen.md)와 `.env.qwen.example`을 참고한다. LINE Webhook URL은 Qwen `/v1` 주소와 별도다.
+
+### 로컬 설정 파일 위치
+
+프로젝트를 `C:\ai\project\AI-Translator`에 설치한 경우:
+
+| 파일 | 역할 |
+| --- | --- |
+| `C:\ai\project\AI-Translator\.env.line.credentials.xml` | LINE Channel Secret과 Channel Access Token을 함께 암호화하여 저장. 설정 명령 실행 후 생성되며 Git에서 제외된다. |
+| `C:\ai\project\AI-Translator\scripts\start-qwen.ps1` | 서버 실행 및 연결 설정. `$settings`에서 포트, Qwen 주소·모델, DB 경로 등을 지정한다. |
+
+인증정보 파일은 동일 PC의 동일 Windows 계정에서만 복호화할 수 있다. 직접 편집하지 말고 아래 설정 명령으로 변경한다. 키·토큰을 실행 스크립트에 직접 적지 않는다.
+
+### 최초 저장 및 키·토큰 변경
+
+LINE Developers에서 해당 채널의 **Basic settings → Channel secret**과 **Messaging API → Channel access token (long-lived)**을 준비한다. PowerShell에서 다음을 실행한다.
+
+```powershell
+cd C:\ai\project\AI-Translator
+.\scripts\start-qwen.ps1 -Configure
+```
+
+`Enter LINE_CHANNEL_SECRET (hidden):` 안내가 나온 뒤 Secret을 붙여 넣고 Enter를 누른다. 이어서 `Enter LINE_CHANNEL_ACCESS_TOKEN (hidden):` 안내가 나오면 Token을 붙여 넣고 Enter를 누른다. 입력값이 화면에 보이지 않는 것은 정상이다. 이 명령은 두 값을 파일에 저장하며 서버를 시작하거나 실행 중인 서버에 즉시 적용하지 않는다.
+
+### 설정 적용 및 서버 실행
+
+실행 중인 번역 서버가 있으면 해당 창에서 **Ctrl+C**로 종료한 뒤 실행한다.
+
+```powershell
+cd C:\ai\project\AI-Translator
+.\scripts\start-qwen.ps1
+```
+
+저장된 키·토큰을 자동으로 읽고 `qwen` 프로필로 시작한다. 기본 연결은 번역 서버 `127.0.0.1:8090`, Qwen `http://127.0.0.1:8082/v1`, 모델 `Qwen3-14B`이며, DB는 `backend/data/translator` 파일에 저장한다. Push 발송은 꺼져 있다. 인증정보 파일이 없으면 최초 실행 때 숨김 입력을 받고 저장하며, 현재 셸에 설정된 인증정보가 있으면 재사용한다.
+
+키·토큰 또는 스크립트의 연결 설정을 변경한 후에는 서버를 재시작해야 적용된다. `java -jar`만 직접 실행하면 암호화된 인증정보 파일을 읽지 않으므로 이 스크립트로 실행한다. 포트를 바꾸면 Caddy의 번역 서버 연결 포트도 함께 맞춘다.
+
+실행 후 상태 확인: http://localhost:8090/actuator/health → `{"status":"UP"}`. `/`는 웹 화면이 없어 403을 반환한다. 현재 PC의 Caddy 설정에서는 공개 상태 확인 주소가 `https://dsss.mooo.com/actuator/health`, LINE Webhook URL이 `https://dsss.mooo.com/webhooks/line`이다. Caddy 설정은 프로젝트 외부의 `C:\ai\caddy\Caddyfile`에서 관리한다.
+
+LINE에서 **Use webhook**과 **Allow bot to join group chats**를 켜고 봇을 그룹에 초대한 뒤 메시지를 보낸다. 현재는 그룹의 한국어·태국어 텍스트만 번역하며 1:1 메시지는 처리하지 않는다. LINE 기본 안내 문구가 번역과 함께 오면 Official Account Manager의 **설정 → 응답 설정 → 자동응답 메시지**를 끄고 Webhook은 켜 둔다.
 
 ## Railway 클라우드 배포 — 선택 사항
 
