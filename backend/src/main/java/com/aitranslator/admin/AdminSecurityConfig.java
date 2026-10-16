@@ -24,9 +24,9 @@ public class AdminSecurityConfig {
    .requestCache(c->c.disable())
    .formLogin(f->f.loginPage("/admin/").loginProcessingUrl("/api/admin/login")
     .successHandler((request,response,auth)->{response.setContentType("application/json");response.getWriter().write("{\"authenticated\":true}");})
-    .failureHandler((request,response,error)->response.sendError(401)))
+    .failureHandler((request,response,error)->response.setStatus(401)))
    .logout(l->l.logoutUrl("/api/admin/logout").invalidateHttpSession(true).deleteCookies("JSESSIONID").logoutSuccessHandler((request,response,auth)->response.setStatus(204)))
-   .exceptionHandling(e->e.authenticationEntryPoint((request,response,error)->response.sendError(401)))
+   .exceptionHandling(e->e.authenticationEntryPoint((request,response,error)->response.setStatus(401)))
    .headers(h->h.contentSecurityPolicy(c->c.policyDirectives("default-src 'self'; script-src 'self'; style-src 'self'; img-src 'self' data:; connect-src 'self'; frame-ancestors 'none'")))
    .build();
  }
