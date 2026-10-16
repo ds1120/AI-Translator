@@ -13,3 +13,7 @@ CREATE TABLE IF NOT EXISTS webhook_events (
  elapsed_ms BIGINT NOT NULL DEFAULT 0
 );
 CREATE INDEX IF NOT EXISTS idx_events_pending ON webhook_events(state,received_at);
+CREATE TABLE IF NOT EXISTS chat_group_languages (
+ group_id VARCHAR(128) PRIMARY KEY,
+ partner_language VARCHAR(2) NOT NULL
+);

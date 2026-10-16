@@ -23,20 +23,35 @@ public class MessageProcessor {
  private void process(StoredEvent e){
   long start=System.nanoTime();String state="FAILED";boolean sending=false;
   try {
-   var language=detector.detect(e.originalText());
-   if(language.isEmpty() || e.originalText().startsWith("/")){state="IGNORED";return;}
-   if(language.get()!=Language.KO && language.get()!=settings.partnerLanguage()){state="IGNORED";return;}
-   Boolean enabled=groups.enabled(e.groupId());
-   if(enabled==null){try{groups.insert(e.groupId());}catch(DuplicateKeyException ignored){}enabled=groups.enabled(e.groupId());}
-   if(!Boolean.TRUE.equals(enabled)){state="IGNORED";return;}
-   Language target=language.get()==Language.KO?settings.partnerLanguage():Language.KO;
-   var result=translations.translate(new TranslationService.Request(e.originalText(),language.get(),target,List.of(),Map.of()));
-   String text=target.flag()+" "+result.translatedText();
+   String input=e.originalText().strip();
+   boolean command=input.equals("/설정") || input.matches("(?s)^/언어(?:\\s+.*)?$");
+   String text;
+   if(command){
+    // Stale commands must not overwrite a group's newer language setting.
+    if(!fresh(e)){state="EXPIRED";return;}
+    if(input.equals("/설정"))text=languageStatus(partnerLanguage(e.groupId()));
+    else {
+     String argument=input.substring("/언어".length()).strip().toUpperCase(Locale.ROOT);
+     Language selected=switch(argument){case "태국어","TH" -> Language.TH;case "영어","EN" -> Language.EN;case "일본어","JA" -> Language.JA;default -> null;};
+     if(selected==null)text="사용법: /언어 태국어 · /언어 영어 · /언어 일본어\n현재 설정 확인: /설정";
+     else {groups.setPartnerLanguage(e.groupId(),selected.name());text="이 그룹의 번역 언어를 변경했습니다.\n"+languageStatus(selected);}
+    }
+   } else {
+    var language=detector.detect(e.originalText());
+    if(language.isEmpty() || input.startsWith("/")){state="IGNORED";return;}
+    Language partner=partnerLanguage(e.groupId());
+    if(language.get()!=Language.KO && language.get()!=partner){state="IGNORED";return;}
+    Boolean enabled=groups.enabled(e.groupId());
+    if(enabled==null){try{groups.insert(e.groupId());}catch(DuplicateKeyException ignored){}enabled=groups.enabled(e.groupId());}
+    if(!Boolean.TRUE.equals(enabled)){state="IGNORED";return;}
+    Language target=language.get()==Language.KO?partner:Language.KO;
+    var result=translations.translate(new TranslationService.Request(e.originalText(),language.get(),target,List.of(),Map.of()));
+    text=target.flag()+" "+result.translatedText();
+   }
    if(settings.mock())text="[MOCK] "+text;
    long now=System.currentTimeMillis();
    // Keep a safety margin; old/redelivered events must not generate costly stale pushes.
-   boolean fresh=now-e.receivedAt()<45_000 && now-e.eventTime()<45_000;
-   if(fresh){sending=true;line.reply(e.replyToken(),text);}
+   if(fresh(e)){sending=true;line.reply(e.replyToken(),text);}
    else if(settings.push() && now-e.eventTime()<300_000){sending=true;line.push(e.groupId(),text,UUID.nameUUIDFromBytes(e.eventId().getBytes(StandardCharsets.UTF_8)).toString());}
    else {state="EXPIRED";return;}
    state="SENT";
@@ -51,6 +66,16 @@ public class MessageProcessor {
    metrics.timer("translation.processing").record(java.time.Duration.ofMillis(elapsed));
    log.info("Translation event completed outcome={} elapsedMs={}",state,elapsed);
   }
+ }
+ private boolean fresh(StoredEvent event){
+  long now=System.currentTimeMillis();return now-event.receivedAt()<45_000 && now-event.eventTime()<45_000;
+ }
+ private Language partnerLanguage(String groupId){
+  String saved=groups.partnerLanguage(groupId);return saved==null?settings.partnerLanguage():Language.valueOf(saved);
+ }
+ private String languageStatus(Language partner){
+  String name=switch(partner){case TH -> "태국어";case EN -> "영어";case JA -> "일본어";default -> throw new IllegalStateException("Invalid group language");};
+  return "현재 번역: 🇰🇷 한국어 ↔ "+partner.flag()+" "+name+"\n그룹 참여자 누구나 /언어 태국어, /언어 영어, /언어 일본어로 변경할 수 있습니다.";
  }
  @Scheduled(fixedDelay=3_600_000,initialDelay=60_000)
  public void cleanup(){

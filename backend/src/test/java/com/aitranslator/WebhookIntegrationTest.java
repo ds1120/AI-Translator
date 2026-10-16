@@ -24,7 +24,7 @@ import static org.awaitility.Awaitility.await;
 class WebhookIntegrationTest {
  @Autowired MockMvc mvc; @Autowired ObjectMapper json; @Autowired MockLineClient line;
  @Autowired EventMapper events; @Autowired JdbcTemplate db;
- @BeforeEach void clear(){db.update("DELETE FROM webhook_events");db.update("DELETE FROM chat_groups");line.clear();}
+ @BeforeEach void clear(){db.update("DELETE FROM webhook_events");db.update("DELETE FROM chat_group_languages");db.update("DELETE FROM chat_groups");line.clear();}
  private String body(String id,String text,String group,String user,String mode,long timestamp) throws Exception {
   return json.writeValueAsString(Map.of("events",List.of(Map.of("type","message","mode",mode,"webhookEventId",id,"timestamp",timestamp,
     "replyToken","test-token","source",Map.of("type","group","groupId",group,"userId",user),"message",Map.of("type","text","id","m1","text",text)))));
@@ -101,5 +101,45 @@ class WebhookIntegrationTest {
   mvc.perform(get("/actuator/health")).andExpect(status().isOk());
   mvc.perform(get("/api/admin/groups")).andExpect(status().isForbidden());
   mvc.perform(get("/actuator/metrics")).andExpect(status().isForbidden());
+ }
+ @Test void anyoneCanChangeOnlyTheirGroupAndTranslateBothWays()throws Exception {
+  postBody(body("set-en","/언어 영어","english-group","member-a","active",System.currentTimeMillis()));finished("set-en","SENT");
+  postBody(body("set-ja","/언어 일본어","japanese-group","member-b","active",System.currentTimeMillis()));finished("set-ja","SENT");
+  postBody(body("en-out","안녕하세요","english-group","member-c","active",System.currentTimeMillis()));finished("en-out","SENT");
+  assertThat(line.messages().getLast().text()).isEqualTo("[MOCK] 🇺🇸 Hello");
+  postBody(body("en-in","Hello","english-group","member-d","active",System.currentTimeMillis()));finished("en-in","SENT");
+  assertThat(line.messages().getLast().text()).isEqualTo("[MOCK] 🇰🇷 안녕하세요");
+  postBody(body("ja-out","안녕하세요","japanese-group","member-c","active",System.currentTimeMillis()));finished("ja-out","SENT");
+  assertThat(line.messages().getLast().text()).isEqualTo("[MOCK] 🇯🇵 こんにちは");
+  postBody(body("ja-in","こんにちは","japanese-group","member-d","active",System.currentTimeMillis()));finished("ja-in","SENT");
+  assertThat(line.messages().getLast().text()).isEqualTo("[MOCK] 🇰🇷 안녕하세요");
+  postBody(body("default-th","안녕하세요"));finished("default-th","SENT");
+  assertThat(line.messages().getLast().text()).isEqualTo("[MOCK] 🇹🇭 สวัสดีค่ะ");
+  postBody(body("change-by-other","/언어 TH","english-group","member-d","active",System.currentTimeMillis()));finished("change-by-other","SENT");
+  assertThat(db.queryForObject("SELECT partner_language FROM chat_group_languages WHERE group_id='english-group'",String.class)).isEqualTo("TH");
+  assertThat(db.queryForObject("SELECT partner_language FROM chat_group_languages WHERE group_id='japanese-group'",String.class)).isEqualTo("JA");
+ }
+ @Test void settingQueryInvalidCommandAndUnselectedLanguage()throws Exception {
+  postBody(body("query-default","/설정"));finished("query-default","SENT");
+  assertThat(line.messages().getLast().text()).contains("한국어 ↔ 🇹🇭 태국어");
+  postBody(body("set-alias","/언어 en"));finished("set-alias","SENT");
+  postBody(body("invalid-language","/언어 중국어"));finished("invalid-language","SENT");
+  assertThat(line.messages().getLast().text()).contains("사용법:");
+  postBody(body("query-saved","/설정"));finished("query-saved","SENT");
+  assertThat(line.messages().getLast().text()).contains("한국어 ↔ 🇺🇸 영어");
+  postBody(body("unselected","こんにちは"));finished("unselected","IGNORED");
+  assertThat(db.queryForObject("SELECT partner_language FROM chat_group_languages WHERE group_id='group-test'",String.class)).isEqualTo("EN");
+ }
+ @Test void duplicateCommandCannotOverwriteLaterSetting()throws Exception {
+  String first=body("first-command","/언어 영어");postBody(first);finished("first-command","SENT");
+  postBody(body("second-command","/언어 일본어"));finished("second-command","SENT");
+  postBody(first);
+  assertThat(line.messages()).hasSize(2);
+  assertThat(db.queryForObject("SELECT partner_language FROM chat_group_languages WHERE group_id='group-test'",String.class)).isEqualTo("JA");
+ }
+ @Test void staleCommandDoesNotChangeSettingsOrReply()throws Exception {
+  postBody(body("stale-command","/언어 영어","group-test","member","active",System.currentTimeMillis()-120_000));finished("stale-command","EXPIRED");
+  assertThat(db.queryForObject("SELECT COUNT(*) FROM chat_group_languages",Integer.class)).isZero();
+  assertThat(line.messages()).isEmpty();
  }
 }
