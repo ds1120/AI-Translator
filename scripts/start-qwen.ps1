@@ -1,4 +1,7 @@
-param([switch]$Configure)
+param(
+    [switch]$Configure,
+    [ValidateSet('TH', 'EN', 'JA')][string]$Language = 'TH'
+)
 
 $ErrorActionPreference = 'Stop'
 $projectRoot = Split-Path -Parent $PSScriptRoot
@@ -19,6 +22,7 @@ $settings = @{
     AI_BASE_URL = 'http://127.0.0.1:8082/v1'
     AI_MODEL = 'Qwen3-14B'
     LINE_PUSH_ENABLED = 'false'
+    TRANSLATION_PARTNER_LANGUAGE = $Language.ToUpperInvariant()
     DB_URL = 'jdbc:h2:file:./backend/data/translator;MODE=MariaDB;DB_CLOSE_ON_EXIT=FALSE'
     DB_USER = 'sa'
     DB_PASSWORD = ''

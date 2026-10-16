@@ -2,6 +2,8 @@ package com.aitranslator.config;
 import java.time.Duration;
 import java.util.Set;
 import java.net.URI;
+import java.util.Locale;
+import com.aitranslator.translation.Language;
 import java.net.http.HttpClient;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
@@ -22,6 +24,7 @@ public class AppConfig {
   private final Environment e;
   public Settings(Environment e) {
    this.e=e;
+   if(partnerLanguage()==Language.KO) throw new IllegalStateException("Partner language must be TH, EN or JA");
    if (!get("app.mode","mock").matches("mock|live")) throw new IllegalStateException("app.mode must be mock or live");
    if (timeout()<1 || timeout()>20) throw new IllegalStateException("AI timeout must be 1..20 seconds");
    if (!mock()) {
@@ -40,6 +43,10 @@ public class AppConfig {
   }
   public String get(String key,String fallback){return e.getProperty(key,fallback);}
   public boolean mock(){return get("app.mode","mock").equals("mock");}
+  public Language partnerLanguage(){
+   try {return Language.valueOf(get("app.translation.partner-language","TH").strip().toUpperCase(Locale.ROOT));}
+   catch(IllegalArgumentException ex){throw new IllegalStateException("Partner language must be TH, EN or JA",ex);}
+  }
   public String secret(){return get("app.line.secret","");}
   public String token(){return get("app.line.token","");}
   public String aiBase(){return get("app.ai.base-url","https://api.openai.com/v1");}

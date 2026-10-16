@@ -1,6 +1,6 @@
 # AI-Translator · Phase 1
 
-한국어 ↔ 태국어 LINE 그룹 자동 번역 백엔드. Java 21 / Spring Boot 3.5 / Maven / MyBatis / MariaDB.
+한국어 ↔ 선택 언어(태국어·영어·일본어) LINE 그룹 자동 번역 백엔드. Java 21 / Spring Boot 3.5 / Maven / MyBatis / MariaDB.
 관리 화면은 **React + TypeScript + Vite**로 Phase 3에서 구현한다. Phase 1에는 관리자 UI/API가 없다.
 
 이 작업 환경은 Linux이므로 `/workspace/AI-Translator`에 독립 생성했다. Windows에서는 이 폴더를 `C:\ai\project\AI-Translator`로 복사해 사용하면 된다. 기존 프로젝트는 수정하지 않았다.
@@ -54,6 +54,20 @@ Windows 10 + 기존 OpenAI 호환 `Qwen3-14B` API를 지원한다. 외부 유료
 
 인증정보 파일은 동일 PC의 동일 Windows 계정에서만 복호화할 수 있다. 직접 편집하지 말고 아래 설정 명령으로 변경한다. 키·토큰을 실행 스크립트에 직접 적지 않는다.
 
+### 번역 언어 선택
+
+서버를 종료한 뒤 PowerShell에서 아래 중 하나로 실행한다. 한 서버는 모든 그룹에 동일한 언어 쌍을 적용한다. 기본값은 `TH`이며, 선택한 언어와 한국어 사이에서만 번역한다.
+
+```powershell
+.\scripts\start-qwen.ps1 -Language TH  # 한국어 ↔ 태국어 (기본)
+.\scripts\start-qwen.ps1 -Language EN  # 한국어 ↔ 영어
+.\scripts\start-qwen.ps1 -Language JA  # 한국어 ↔ 일본어
+```
+
+기본 언어를 계속 유지하려면 `scripts/start-qwen.ps1` 첫 부분의 `$Language = 'TH'` 기본값을 `EN` 또는 `JA`로 변경한다. Docker 또는 직접 Java로 실행할 때는 환경변수 `TRANSLATION_PARTNER_LANGUAGE`를 설정한다. 언어 변경은 재시작 후 적용되며 키·토큰은 그대로 재사용한다.
+
+영어는 라틴 문자, 일본어는 히라가나·가타카나를 기준으로 감지한다. 한자만 있는 문장은 중국어와 구분하기 어려워 건너뛴다. 라틴 문자만으로 영어와 다른 유럽 언어를 완벽히 구분하지는 못한다. 선택하지 않은 언어, 한태일 문자가 혼합된 문장, 숫자·이모지만 있는 메시지는 건너뛴다. Mock에서는 `안녕하세요` ↔ `Hello`, `안녕하세요` ↔ `こんにちは` 예문도 지원한다.
+
 ### 최초 저장 및 키·토큰 변경
 
 LINE Developers에서 해당 채널의 **Basic settings → Channel secret**과 **Messaging API → Channel access token (long-lived)**을 준비한다. PowerShell에서 다음을 실행한다.
@@ -80,7 +94,7 @@ cd C:\ai\project\AI-Translator
 
 실행 후 상태 확인: http://localhost:8090/actuator/health → `{"status":"UP"}`. `/`는 웹 화면이 없어 403을 반환한다. 현재 PC의 Caddy 설정에서는 공개 상태 확인 주소가 `https://dsss.mooo.com/actuator/health`, LINE Webhook URL이 `https://dsss.mooo.com/webhooks/line`이다. Caddy 설정은 프로젝트 외부의 `C:\ai\caddy\Caddyfile`에서 관리한다.
 
-LINE에서 **Use webhook**과 **Allow bot to join group chats**를 켜고 봇을 그룹에 초대한 뒤 메시지를 보낸다. 현재는 그룹의 한국어·태국어 텍스트만 번역하며 1:1 메시지는 처리하지 않는다. LINE 기본 안내 문구가 번역과 함께 오면 Official Account Manager의 **설정 → 응답 설정 → 자동응답 메시지**를 끄고 Webhook은 켜 둔다.
+LINE에서 **Use webhook**과 **Allow bot to join group chats**를 켜고 봇을 그룹에 초대한 뒤 메시지를 보낸다. 그룹의 한국어·선택 언어 텍스트만 번역하며 1:1 메시지는 처리하지 않는다. LINE 기본 안내 문구가 번역과 함께 오면 Official Account Manager의 **설정 → 응답 설정 → 자동응답 메시지**를 끄고 Webhook은 켜 둔다.
 
 ## Railway 클라우드 배포 — 선택 사항
 
@@ -125,7 +139,7 @@ MariaDB에는 `ai_translator` DB와 사용자 권한을 먼저 생성한다. 테
 
 - raw HTTP body HMAC-SHA256 검증 후 수신, 그룹 text/active 이벤트만 처리.
 - DB 접수 완료 후 200, 별도 worker에서 번역/회신. DB 오류는 5xx.
-- 한국어/태국어 유니코드 문자 감지. 다른 언어·혼합 한태·명령어·봇 자신은 무시.
+- 한국어/태국어/영어/일본어 문자 감지 후 설정된 언어 쌍만 번역. 감지 한계는 위 언어 선택 안내 참고. 혼합 한태일·명령어·봇 자신은 무시.
 - webhookEventId PK 중복 방지 (MariaDB에서 재시작 이후에도 7일 보존).
 - 기본 번역문만 회신. 역번역/문맥/명령/관리자 등록은 미구현.
 - LINE/AI 실패는 상태/안전한 로그로 기록. 불확실한 전달은 UNKNOWN이며 자동 재전송하지 않는다.

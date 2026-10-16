@@ -41,6 +41,15 @@ class QwenProviderTest {
   var p=new LocalQwenProvider(http("unfinished text","length"),new Settings(env()));
   assertThatThrownBy(()->p.translate(request())).hasMessageContaining("truncated");
  }
+ @Test void promptsForSelectedLanguagePair()throws Exception{
+  for(var target:List.of(Language.EN,Language.JA)) {
+   var h=http("translated","stop");var provider=new LocalQwenProvider(h,new Settings(env()));
+   provider.translate(new TranslationService.Request("안녕하세요",Language.KO,target,List.of(),Map.of()));
+   var payload=ArgumentCaptor.forClass(Object.class);
+   verify(h).post(anyString(),anyMap(),payload.capture(),anyInt());
+   assertThat(payload.getValue().toString()).contains("from Korean to "+target.displayName());
+  }
+ }
  @Test void permitsLoopbackHttpButRequiresHttpsRemotely(){
   assertThatCode(()->new Settings(env().withProperty("app.ai.base-url","http://127.0.0.1:1234/v1"))).doesNotThrowAnyException();
   assertThatThrownBy(()->new Settings(env().withProperty("app.ai.base-url","http://public.example/v1"))).hasMessageContaining("HTTPS");

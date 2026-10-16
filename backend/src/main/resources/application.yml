@@ -31,6 +31,8 @@ management:
     health:
       show-details: never
 app:
+  translation:
+    partner-language: ${TRANSLATION_PARTNER_LANGUAGE:TH}
   mode: live
   line:
     secret: ${LINE_CHANNEL_SECRET:}

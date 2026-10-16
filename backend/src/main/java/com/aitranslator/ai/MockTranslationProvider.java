@@ -12,6 +12,14 @@ public class MockTranslationProvider implements TranslationProvider {
   "내일 아침 9시에 출발할게.", "พรุ่งนี้ฉันจะออกเดินทางตอนเก้าโมงเช้า",
   "พรุ่งนี้เจอกันตอนสิบโมงนะ", "내일 10시에 만나자.");
  public String translate(Request r){
+  if(r.source()==com.aitranslator.translation.Language.KO && r.text().strip().equals("안녕하세요")) {
+   if(r.target()==com.aitranslator.translation.Language.EN)return "Hello";
+   if(r.target()==com.aitranslator.translation.Language.JA)return "こんにちは";
+  }
+  if(r.source()==com.aitranslator.translation.Language.EN && r.text().strip().equals("Hello"))return "안녕하세요";
+  if(r.source()==com.aitranslator.translation.Language.JA && r.text().strip().equals("こんにちは"))return "안녕하세요";
+  if(r.source()!=com.aitranslator.translation.Language.TH && r.target()!=com.aitranslator.translation.Language.TH)
+   throw new IllegalArgumentException("Mock mode supports documented fixtures only");
   String value=FIXTURES.get(r.text().strip());
   if(value==null) throw new IllegalArgumentException("Mock mode supports documented fixtures only");
   return value;

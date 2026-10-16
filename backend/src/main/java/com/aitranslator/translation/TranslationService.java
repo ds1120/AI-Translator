@@ -10,7 +10,8 @@ public class TranslationService {
  public record Request(String text, Language source, Language target, List<String> context, Map<String,String> options) {}
  public record Result(String translatedText, String model, long processingMillis) {}
  public Result translate(Request request) {
-  if(request.text()==null || request.text().isBlank() || request.text().length()>5000 || request.source()==null || request.target()!=request.source().opposite())
+  if(request.text()==null || request.text().isBlank() || request.text().length()>5000 || request.source()==null || request.target()==null
+   || request.source()==request.target() || (request.source()!=Language.KO && request.target()!=Language.KO))
    throw new IllegalArgumentException("Invalid translation request");
   long start=System.nanoTime();
   String translated=provider.translate(request);

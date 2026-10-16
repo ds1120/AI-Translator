@@ -1,0 +1,26 @@
+package com.aitranslator;
+import com.aitranslator.config.AppConfig.Settings;
+import com.aitranslator.ai.MockTranslationProvider;
+import com.aitranslator.translation.*;
+import org.junit.jupiter.api.Test;
+import org.springframework.mock.env.MockEnvironment;
+import java.util.*;
+import static org.assertj.core.api.Assertions.*;
+class LanguagePairTest {
+ @Test void validatesPartnerSetting(){
+  var env=new MockEnvironment().withProperty("app.line.secret","test");
+  assertThat(new Settings(env).partnerLanguage()).isEqualTo(Language.TH);
+  for(String value:List.of("en","JA","TH"))
+   assertThat(new Settings(env.withProperty("app.translation.partner-language",value)).partnerLanguage().name()).isEqualTo(value.toUpperCase(Locale.ROOT));
+  for(String value:List.of("KO","XX",""))
+   assertThatThrownBy(()->new Settings(env.withProperty("app.translation.partner-language",value))).hasMessageContaining("TH, EN or JA");
+ }
+ @Test void translatesSelectedPairsAndRejectsInvalidDirection(){
+  var service=new TranslationService(new MockTranslationProvider());
+  for(var pair:Map.of(Language.EN,"Hello",Language.JA,"こんにちは").entrySet()) {
+   assertThat(service.translate(new TranslationService.Request("안녕하세요",Language.KO,pair.getKey(),List.of(),Map.of())).translatedText()).isEqualTo(pair.getValue());
+   assertThat(service.translate(new TranslationService.Request(pair.getValue(),pair.getKey(),Language.KO,List.of(),Map.of())).translatedText()).isEqualTo("안녕하세요");
+  }
+  assertThatThrownBy(()->service.translate(new TranslationService.Request("Hello",Language.EN,Language.JA,List.of(),Map.of()))).isInstanceOf(IllegalArgumentException.class);
+ }
+}

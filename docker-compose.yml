@@ -21,6 +21,7 @@ services:
       SPRING_PROFILES_ACTIVE: ${SPRING_PROFILES_ACTIVE:-live}
       SERVER_ADDRESS: 0.0.0.0
       SERVER_PORT: 8080
+      TRANSLATION_PARTNER_LANGUAGE: ${TRANSLATION_PARTNER_LANGUAGE:-TH}
       DB_URL: jdbc:mariadb://database:3306/ai_translator
       DB_USER: ai_translator
       DB_PASSWORD: ${DB_PASSWORD:?Set DB_PASSWORD}

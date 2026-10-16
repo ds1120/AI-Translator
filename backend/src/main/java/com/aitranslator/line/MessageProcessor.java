@@ -25,11 +25,13 @@ public class MessageProcessor {
   try {
    var language=detector.detect(e.originalText());
    if(language.isEmpty() || e.originalText().startsWith("/")){state="IGNORED";return;}
+   if(language.get()!=Language.KO && language.get()!=settings.partnerLanguage()){state="IGNORED";return;}
    Boolean enabled=groups.enabled(e.groupId());
    if(enabled==null){try{groups.insert(e.groupId());}catch(DuplicateKeyException ignored){}enabled=groups.enabled(e.groupId());}
    if(!Boolean.TRUE.equals(enabled)){state="IGNORED";return;}
-   var result=translations.translate(new TranslationService.Request(e.originalText(),language.get(),language.get().opposite(),List.of(),Map.of()));
-   String text=(language.get()==Language.KO?"🇹🇭 ":"🇰🇷 ")+result.translatedText();
+   Language target=language.get()==Language.KO?settings.partnerLanguage():Language.KO;
+   var result=translations.translate(new TranslationService.Request(e.originalText(),language.get(),target,List.of(),Map.of()));
+   String text=target.flag()+" "+result.translatedText();
    if(settings.mock())text="[MOCK] "+text;
    long now=System.currentTimeMillis();
    // Keep a safety margin; old/redelivered events must not generate costly stale pushes.

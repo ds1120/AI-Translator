@@ -10,6 +10,12 @@ class LanguageDetectorTest {
   assertThat(detector.detect("ㅋㅋ")).contains(Language.KO);
  }
  @Test void skipsAmbiguousAndUnsupported(){
-  for(String text:new String[]{"hello", "1234", "👍", "안녕 สวัสดี", "๑๒๓"})assertThat(detector.detect(text)).isEmpty();
+  for(String text:new String[]{"1234", "👍", "안녕 สวัสดี", "๑๒๓", "中文", "안녕 こんにちは", "привет"})assertThat(detector.detect(text)).isEmpty();
+ }
+ @Test void detectsEnglishAndJapanese(){
+  assertThat(detector.detect("Hello, see you at 9!")).contains(Language.EN);
+  assertThat(detector.detect("こんにちは")).contains(Language.JA);
+  assertThat(detector.detect("明日9時に会いましょう")).contains(Language.JA);
+  assertThat(detector.detect("내일 meeting 있어요")).contains(Language.KO);
  }
 }
