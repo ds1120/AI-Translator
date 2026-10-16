@@ -1,0 +1,47 @@
+services:
+  database:
+    image: mariadb:11.4
+    environment:
+      MARIADB_DATABASE: ai_translator
+      MARIADB_USER: ai_translator
+      MARIADB_PASSWORD: ${DB_PASSWORD:?Set DB_PASSWORD in .env}
+      MARIADB_ROOT_PASSWORD: ${DB_ROOT_PASSWORD:?Set DB_ROOT_PASSWORD in .env}
+    volumes:
+      - mariadb_data:/var/lib/mysql
+    healthcheck:
+      test: ["CMD", "healthcheck.sh", "--connect", "--innodb_initialized"]
+      interval: 5s
+      timeout: 5s
+      retries: 20
+  backend:
+    build:
+      context: .
+      dockerfile: docker/Dockerfile
+    environment:
+      SPRING_PROFILES_ACTIVE: live
+      SERVER_ADDRESS: 0.0.0.0
+      DB_URL: jdbc:mariadb://database:3306/ai_translator
+      DB_USER: ai_translator
+      DB_PASSWORD: ${DB_PASSWORD:?Set DB_PASSWORD}
+      LINE_CHANNEL_SECRET: ${LINE_CHANNEL_SECRET:?Set LINE_CHANNEL_SECRET}
+      LINE_CHANNEL_ACCESS_TOKEN: ${LINE_CHANNEL_ACCESS_TOKEN:?Set LINE_CHANNEL_ACCESS_TOKEN}
+      LINE_BOT_USER_ID: ${LINE_BOT_USER_ID:-}
+      LINE_PUSH_ENABLED: ${LINE_PUSH_ENABLED:-false}
+      AI_BASE_URL: ${AI_BASE_URL:-https://api.openai.com/v1}
+      AI_API_KEY: ${AI_API_KEY:?Set AI_API_KEY}
+      AI_MODEL: ${AI_MODEL:-gpt-4.1-mini}
+      AI_TIMEOUT_SECONDS: ${AI_TIMEOUT_SECONDS:-15}
+    depends_on:
+      database:
+        condition: service_healthy
+    restart: unless-stopped
+  nginx:
+    image: nginx:1.28-alpine
+    ports:
+      - "127.0.0.1:8080:80"
+    volumes:
+      - ./docker/nginx.conf:/etc/nginx/nginx.conf:ro
+    depends_on:
+      - backend
+volumes:
+  mariadb_data:

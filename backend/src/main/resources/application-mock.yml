@@ -1,0 +1,9 @@
+spring:
+  datasource:
+    url: jdbc:h2:mem:translator;MODE=MariaDB;DB_CLOSE_DELAY=-1
+    username: sa
+    password: ""
+app:
+  mode: mock
+  line:
+    secret: ${LINE_CHANNEL_SECRET:mock-channel-secret}

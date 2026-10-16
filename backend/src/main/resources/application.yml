@@ -1,0 +1,44 @@
+spring:
+  application:
+    name: ai-translator
+  profiles:
+    default: mock
+  datasource:
+    url: ${DB_URL:jdbc:mariadb://localhost:3306/ai_translator}
+    username: ${DB_USER:ai_translator}
+    password: ${DB_PASSWORD:}
+  sql:
+    init:
+      mode: always
+  main:
+    banner-mode: off
+server:
+  address: ${SERVER_ADDRESS:127.0.0.1}
+  port: ${SERVER_PORT:8080}
+  error:
+    include-message: never
+    include-stacktrace: never
+mybatis:
+  configuration:
+    map-underscore-to-camel-case: true
+    arg-name-based-constructor-auto-mapping: true
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health
+  endpoint:
+    health:
+      show-details: never
+app:
+  mode: live
+  line:
+    secret: ${LINE_CHANNEL_SECRET:}
+    token: ${LINE_CHANNEL_ACCESS_TOKEN:}
+    bot-user-id: ${LINE_BOT_USER_ID:}
+    push-enabled: ${LINE_PUSH_ENABLED:false}
+  ai:
+    base-url: ${AI_BASE_URL:https://api.openai.com/v1}
+    key: ${AI_API_KEY:}
+    model: ${AI_MODEL:gpt-4.1-mini}
+    timeout-seconds: ${AI_TIMEOUT_SECONDS:15}
