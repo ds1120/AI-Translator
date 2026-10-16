@@ -15,7 +15,7 @@ import java.util.*;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.*;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
 import static org.assertj.core.api.Assertions.*;
-@SpringBootTest(properties={"spring.config.location=classpath:/","spring.datasource.url=jdbc:h2:mem:admin-tests;MODE=MariaDB;DB_CLOSE_DELAY=-1","app.admin.password=test-admin-password","app.worker.delay-ms=10000","app.ai.gemini.key=gemini-test-fixture","app.ai.openai.key=openai-test-fixture"})
+@SpringBootTest(properties={"spring.config.location=classpath:/","app.mode=mock","app.line.secret=mock-admin-test-secret","app.line.token=mock-test-token","spring.datasource.url=jdbc:h2:mem:admin-tests;MODE=MariaDB;DB_CLOSE_DELAY=-1","spring.datasource.username=sa","spring.datasource.password=","app.admin.password=test-admin-password","app.worker.delay-ms=10000","app.ai.gemini.key=gemini-test-fixture","app.ai.openai.key=openai-test-fixture"})
 @AutoConfigureMockMvc @ActiveProfiles("mock")
 class AdminIntegrationTest {
  @Autowired MockMvc mvc;@Autowired ObjectMapper json;@Autowired JdbcTemplate db;@Autowired ConfigurableEnvironment environment;

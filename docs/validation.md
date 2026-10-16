@@ -75,3 +75,11 @@
 - PowerShell 배포/설치/개발 실행 스크립트 구문 검사와 실제 운영 설치 실행을 확인했다. 최신 배포 스크립트 전체 재배포, OS 재부팅, Docker 빌드는 별도로 수행하지 않았다. 운영 작업 등록 확인을 재부팅 테스트로 표현하지 않는다.
 - 기존 Qwen API/UI는 별도 서비스로 10번 PC에 남으며 새 Caddy가 해당 LAN 포트로 연결한다. 현재 외부 Gemini 번역·관리 API와는 구분한다.
 - 공개 도메인에 올바른 HMAC 서명과 빈 events 배열을 전송하여 webhook HTTP 200을 확인했다. 실제 LINE 메시지 전송은 하지 않았다.
+
+## 2026-10-16 로컬 환경변수에 따른 빌드 실패 수정
+
+- LINE_CHANNEL_SECRET에 별도 합성 값을 설정한 뒤 기존 WebhookIntegrationTest 한 개를 실행하여 200 대신 401이 발생하는 문제를 재현했다. 테스트 서명은 고정 Mock 키였지만 실제 검증 Settings는 환경변수의 LINE 키를 읽고 있었다.
+- 웹훅/관리자 통합 테스트에 Mock 모드, 테스트 키와 토큰, H2 메모리 DB·계정 값을 명시하여 운영 환경과 분리했다. 운영 SignatureVerifier와 보안 설정은 변경하지 않았다.
+- LINE_CHANNEL_SECRET=합성 외부 키, APP_MODE=live, SPRING_DATASOURCE_URL=사용할 수 없는 합성 URL 환경에서 실제 scripts/build.ps1 실행: 프런트엔드 빌드 및 Maven verify 성공. 총 89개, 87개 통과, 실패·오류 0, 선택 실모델 테스트 2개 제외.
+- Windows PowerShell에서 로그를 리다이렉트할 때 Mockito의 native stderr 경고가 terminating error로 처리되는 현상도 재현했다. build.ps1이 경고 스트림 대신 각 외부 명령의 종료 코드로 실패를 판정하도록 보완했고, 리다이렉트한 동일 빌드 스크립트의 종료 코드 0과 BUILD SUCCESS를 확인했다.
+- 수정 범위는 테스트와 빌드 스크립트이며 운영 서버를 재시작하지 않았다.

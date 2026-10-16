@@ -18,7 +18,7 @@ import static org.springframework.test.web.servlet.request.MockMvcRequestBuilder
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
 import static org.assertj.core.api.Assertions.*;
 import static org.awaitility.Awaitility.await;
-@SpringBootTest(properties={"spring.config.location=classpath:/","app.worker.delay-ms=30","app.line.bot-user-id=our-bot"})
+@SpringBootTest(properties={"spring.config.location=classpath:/","app.mode=mock","app.line.secret=mock-channel-secret","app.line.token=mock-test-token","spring.datasource.url=jdbc:h2:mem:webhook-tests;MODE=MariaDB;DB_CLOSE_DELAY=-1","spring.datasource.username=sa","spring.datasource.password=","app.worker.delay-ms=30","app.line.bot-user-id=our-bot"})
 @AutoConfigureMockMvc
 @ActiveProfiles("mock")
 class WebhookIntegrationTest {
