@@ -3,7 +3,7 @@
 한국어 ↔ 선택 언어(태국어·베트남어·영어·일본어) LINE 1:1·그룹 자동 번역 백엔드. Java 21 / Spring Boot 3.5 / Maven / MyBatis / MariaDB.
 관리 화면은 **React + TypeScript + Vite**로 Phase 3에서 구현한다. Phase 1에는 관리자 UI/API가 없다.
 
-이 작업 환경은 Linux이므로 `/workspace/AI-Translator`에 독립 생성했다. Windows에서는 이 폴더를 `C:\ai\project\AI-Translator`로 복사해 사용하면 된다. 기존 프로젝트는 수정하지 않았다.
+Windows 설치 경로는 `C:\ai\project\AI-Translator`를 기준으로 설명한다. 처음 LINE 계정을 준비한다면 아래 [LINE 계정 생성부터 봇 연결까지](#line-계정-생성부터-봇-연결까지)를 순서대로 진행한다.
 
 ## 인증정보 없이 실행 (Mock)
 
@@ -124,17 +124,185 @@ LINE에서 **Use webhook**을 켜고 봇을 친구로 추가한 뒤 1:1 대화�
 
 [Railway 배포 가이드](docs/railway-deploy.md)에 MariaDB 영속 볼륨, 비밀 환경변수, 공개 HTTPS와 LINE 연결 절차를 정리했다. 계정 연결과 실제 배포는 별도 진행해야 한다.
 
-## 실제 LINE 봇 연결
+## LINE 계정 생성부터 봇 연결까지
 
-자세한 절차: [LINE 설정 가이드](docs/line-setup.md).
+2026-10-16 기준 공식 문서와 현재 Windows/Qwen 구성을 기준으로 정리했다. 화면 언어에 따라 메뉴명이 다를 수 있으므로 영문 이름을 함께 표시한다.
 
-1. LINE Official Account 생성 → LINE Official Account Manager에서 Messaging API 활성화.
-2. LINE Developers Console에서 채널 Secret과 Channel access token(long-lived)을 준비.
-3. 봇의 그룹/복수 사용자 채팅 참여 허용, Webhook 사용 및 재전송 활성화.
-4. `.env.example`을 `.env`로 복사하고 LINE/AI/DB 정보를 입력.
-5. `docker compose up --build -d`로 실행.
-6. HTTPS 도메인 또는 개발용 HTTPS 터널을 `http://localhost:8080`에 연결. Webhook URL을 `https://도메인/webhooks/line`으로 설정하고 Verify.
-7. 봇을 LINE 친구로 추가한 뒤 그룹에 초대. 한국어/태국어 메시지 전송.
+### 1. 관리 사이트와 현재 채널 바로가기
+
+| 사이트 | 역할 |
+| --- | --- |
+| [LINE Business ID](https://account.line.biz/) | 관리자로 로그인하는 계정. 개인 LINE 계정 또는 이메일로 등록 |
+| [LINE Official Account 생성](https://entry.line.biz/) | 사용자가 친구로 추가할 봇의 공식 계정 생성 |
+| [LINE Official Account Manager](https://manager.line.biz/) | 공식 계정의 프로필, Messaging API 활성화, 자동응답·인사말 관리 |
+| [LINE Developers Console](https://developers.line.biz/console/) | Provider와 채널, Secret·Token, Webhook 설정 |
+| [현재 번역 봇 채널 / LINE 비즈니스 바로가기](https://developers.line.biz/console/channel/2012046604) | 사용자가 제공한 채널 ID `2012046604`의 설정 페이지. 해당 계정 로그인과 관리 권한 필요 |
+
+Business ID는 관리자 로그인 계정, Official Account는 친구 목록에 보이는 봇, Provider는 채널을 관리하는 묶음, Messaging API 채널은 프로그램과 LINE을 연결하는 설정 단위다. 마지막 링크는 공개 소개 페이지가 아니므로 로그인 화면이나 권한 오류가 나오면 해당 채널을 관리하는 계정인지 확인한다.
+
+### 2. Business ID와 Official Account 만들기
+
+이미 현재 공식 계정과 채널을 사용 중이면 새로 만들지 말고 4번부터 확인한다.
+
+1. [공식 계정 생성](https://entry.line.biz/)을 연다.
+2. Business ID 로그인·등록 화면에서 개인 LINE 계정 또는 이메일 등록 방식을 선택한다.
+3. 처음 등록한다면 화면의 인증 절차를 마친다.
+4. 공식 계정 생성 양식에 봇 표시 이름, 이메일 등 필수 항목을 입력한다. 예: 계정명 `AI 번역봇`. 국가·지역과 업종 등은 실제 사용 환경에 맞춘다.
+5. 입력 내용을 확인하고 계정을 생성한다.
+6. [Official Account Manager](https://manager.line.biz/)에서 방금 만든 계정이 보이는지 확인하고 선택한다.
+
+세부 생성 흐름: [LINE 공식 시작 가이드](https://developers.line.biz/en/docs/messaging-api/getting-started/).
+
+### 3. Messaging API 활성화와 Provider 선택
+
+1. Official Account Manager에서 해당 공식 계정 → **설정(Settings) → Messaging API**를 연다.
+2. **Messaging API 사용(Use Messaging API / Enable Messaging API)**을 선택한다.
+3. 개발자 등록 안내가 나오면 이름·이메일 등 필요한 정보를 등록한다.
+4. 채널을 관리할 Provider를 선택하거나 새로 만든다. 개인 프로젝트라면 본인이 계속 관리할 Provider를 사용한다.
+5. 연결 내용을 확인하고 활성화한다.
+6. 같은 관리자 계정으로 Developers Console에 로그인하고 **Provider → Messaging API 채널**이 생성됐는지 확인한다.
+
+Provider는 연결 후 변경·해제할 수 없으므로 기존 서비스와 연결할 계정인지 확인하고 선택한다. 현재 Messaging API 채널은 Developers Console의 새 채널 버튼에서 직접 만들지 않고 공식 계정의 Messaging API 활성화로 생성한다. [공식 생성 절차](https://developers.line.biz/en/docs/messaging-api/getting-started/).
+
+### 4. Channel Secret과 Access Token 준비
+
+Developers Console에서 해당 **Messaging API 채널**을 연다. 현재 봇은 [채널 2012046604](https://developers.line.biz/console/channel/2012046604) 바로가기를 사용할 수 있다.
+
+| 값 | 확인 위치 | 프로젝트 설정 | 용도 |
+| --- | --- | --- | --- |
+| Channel secret | **Basic settings → Channel secret** | `app.line.secret` | 받은 Webhook이 LINE에서 보낸 요청인지 서명 검증 |
+| Channel access token | **Messaging API → Channel access token (long-lived)** | `app.line.token` | 봇이 LINE API로 답장할 때 인증 |
+| Channel ID | Basic settings | 키·토큰 칸에 넣지 않음 | 채널 식별 번호 |
+| Basic ID (`@...`) | 공식 계정 정보 / Messaging API | 키·토큰 칸에 넣지 않음 | 친구 추가에 쓰는 계정 ID |
+
+Secret을 복사하고, Access Token은 **Issue(발급)**를 눌러 준비한다. 기존 값이 있으면 해당 채널의 유효한 토큰인지 확인한다. 이 프로젝트의 현재 설정은 화면에서 발급하는 long-lived 토큰을 사용한다. LINE은 만료 시간을 지정하는 v2.1 등 다른 토큰 방식도 제공한다. [토큰과 봇 설정 공식 안내](https://developers.line.biz/en/docs/messaging-api/building-bot/).
+
+두 값은 서로 다르다. LINE 로그인 비밀번호나 Channel ID를 대신 넣지 않는다. Secret·Token은 실제 설정 파일에만 저장하고 README, GitHub, 캡처에 포함하지 않는다. 재발급·변경했다면 서버 설정도 갱신하고 재시작한다.
+
+### 5. 별도 설정 파일에 저장하고 서버 실행
+
+프로젝트 루트의 PowerShell에서 실행한다. 기존 설정 파일은 보존한다.
+
+```powershell
+cd C:\ai\project\AI-Translator
+if (!(Test-Path config/application.properties)) {
+    Copy-Item config/application.properties.example config/application.properties
+}
+notepad config/application.properties
+```
+
+파일에서 다음 항목을 채우고 저장한다. 아래 두 입력 안내 문자열을 실제 값으로 교체하고 따옴표는 붙이지 않는다.
+
+```properties
+spring.profiles.active=qwen
+server.port=8090
+app.ai.provider=local-qwen
+app.ai.base-url=http://127.0.0.1:8082/v1
+app.ai.model=Qwen3-14B
+app.line.secret=해당_채널의_Channel_Secret
+app.line.token=해당_채널의_Channel_Access_Token
+app.line.push-enabled=false
+```
+
+예제 파일에 포함된 DB 설정 등 나머지 항목도 유지한다. `config/application.properties`는 `.gitignore`에 등록돼 있고 예제만 GitHub에 올라간다. `git check-ignore config/application.properties`로 제외 여부를 확인할 수 있다. `.env`와 이전 암호화 XML은 이 실행 방식에서 읽지 않는다.
+
+JAR가 없거나 소스가 변경됐다면 기존 서버를 종료한 뒤 먼저 빌드한다. 실행 중인 JAR를 다시 빌드하면 Windows 파일 잠금으로 실패할 수 있다.
+
+```powershell
+mvn -f backend/pom.xml clean verify
+java -jar backend/target/ai-translator-0.1.0.jar
+```
+
+평소에는 `java -jar` 명령만 실행한다. 활성 프로필이 **qwen**, 포트가 **8090**인지 확인한다. 별도 PowerShell에서 `curl.exe http://localhost:8090/actuator/health`를 실행해 `{"status":"UP"}`을 확인한다. `/`의 403은 관리자 화면이 없는 현재 백엔드의 정상 설정이다.
+
+### 6. Caddy로 공개 HTTPS 연결
+
+현재 Windows 구성의 요청 흐름:
+
+```text
+LINE → https://dsss.mooo.com/webhooks/line
+     → Caddy → http://127.0.0.1:8090/webhooks/line
+```
+
+현재 Caddy 설정 파일은 `C:\ai\caddy\Caddyfile`이며 Git 저장소 밖에 있다. 기존 `dsss.mooo.com` 블록에 다음 경로 처리가 들어 있다. 다른 서비스의 `/v1`과 기본 화면 처리도 있으므로 전체 설정을 아래 예제로 덮어쓰지 않는다.
+
+```caddyfile
+@translator path /webhooks/line /actuator/health
+handle @translator {
+    reverse_proxy 127.0.0.1:8090
+}
+```
+
+새 PC에 구성한다면 도메인이 해당 외부 주소를 가리키고 공유기·방화벽을 통해 Caddy의 HTTPS에 도달하도록 준비한다. Webhook에는 공인 인증서가 적용된 HTTPS 주소를 사용한다. Java의 8090은 로컬 HTTP이므로 `https://localhost:8090`으로 바꾸지 않는다. Qwen의 `/v1`은 추론 API이며 Webhook 주소가 아니다.
+
+Caddy를 편집한 경우 먼저 검증하고 성공한 경우에만 다시 읽힌다.
+
+```powershell
+& C:\ai\caddy\caddy.exe validate --config C:\ai\caddy\Caddyfile --adapter caddyfile
+if ($LASTEXITCODE -eq 0) {
+    & C:\ai\caddy\caddy.exe reload --config C:\ai\caddy\Caddyfile --adapter caddyfile
+}
+curl.exe https://dsss.mooo.com/actuator/health
+```
+
+### 7. Webhook 저장·Verify·사용 설정
+
+1. Developers Console → 해당 채널 → **Messaging API → Webhook settings**를 연다.
+2. **Webhook URL → Edit**에서 `https://dsss.mooo.com/webhooks/line`을 입력하고 **Update / Save / 저장**을 누른다.
+3. URL 근처의 **Verify(검증)**를 누르고 **Success**를 확인한다.
+4. **Use webhook**을 **ON**으로 켠다.
+5. 실패한 Webhook의 재전송을 사용하려면 **Webhook redelivery**도 켠다. 이 프로젝트는 동일 이벤트 ID의 중복 처리를 차단한다.
+
+Official Account Manager에서 URL만 입력한 화면에는 Verify가 없을 수 있다. 이 경우 위 Developers Console의 Messaging API 탭에서 진행한다. Verify는 이벤트가 비어 있는 HTTP POST로 통신을 확인하며 서버는 200을 반환해야 한다. 브라우저에서 Webhook URL을 여는 GET 요청으로 대체할 수 없다. Success는 수신 연결 확인이므로 실제 번역·답장은 다음 단계에서 확인한다. [Verify 공식 안내](https://developers.line.biz/en/docs/messaging-api/verify-webhook-url/).
+
+### 8. 기본 자동응답과 인사말 정리
+
+1. [Official Account Manager](https://manager.line.biz/) → 해당 계정 → **설정 → 응답 설정(Response settings)**으로 이동한다.
+2. **자동응답 메시지 / 응답 메시지(Auto-response messages / Auto-reply messages)**를 **OFF**로 바꾼다.
+3. 처음 연결을 시험할 때는 **인사말(Greeting messages)**도 OFF로 두면 응답 구분이 쉽다. 필요하면 친구 추가 시 보여줄 안내만 나중에 설정한다.
+4. **Webhook은 ON**으로 유지한다. 응답 시간 안팎 설정이 나뉜 화면이라면 두 경우의 자동응답을 확인한다.
+
+“메시지를 보내주셔서 감사합니다. 이 계정은 메시지에 바로 회신할 수 있도록 설정되어 있지 않습니다”가 번역과 함께 나오면 이 기본 응답을 확인한다. 설정 변경은 LINE 측에서 적용하므로 Java 서버 재시작은 필요 없다. [자동응답 공식 안내](https://developers.line.biz/en/docs/messaging-api/building-bot/#settings-on-line-official-account-manager).
+
+### 9. 친구 추가 후 1:1 대화 시험
+
+1. Developers Console → **Messaging API**의 QR 코드를 휴대폰 LINE으로 읽어 봇을 친구로 추가한다.
+2. 봇과의 **1:1 채팅**을 열고 `/설정`을 보낸다. 현재 번역 쌍·기본언어와 번호 메뉴가 나오는지 확인한다.
+3. `/언어 1`을 보내 한국어↔태국어를 선택한다.
+4. `안녕하세요`를 보내 태국어 답장을, `สวัสดีค่ะ`를 보내 한국어 답장을 확인한다.
+5. `/언어 2`는 베트남어, `/언어 3`은 영어, `/언어 4`는 일본어다.
+6. `/기본언어 한국어`를 설정하면 선택 쌍 밖의 입력을 한국어로 번역한다. 각 1:1 대화의 설정은 별도로 저장된다.
+
+친구 추가만으로 설정 메뉴가 자동 발송되지는 않는다. 현재 구현은 `/설정` 메시지로 메뉴를 요청한다. 사진·음성·스티커는 번역하지 않는다.
+
+### 10. 그룹에서 사용하기 (선택)
+
+Developers Console → Messaging API → **Allow bot to join group chats**를 ON으로 바꾸고, 휴대폰 LINE 그룹의 초대 메뉴에서 친구로 추가한 봇을 초대한다. 그룹에서도 `/설정`, `/언어 1`, `/기본언어 한국어`로 시험한다. 그룹 참여자 누구나 그 그룹의 설정을 바꿀 수 있으며 개인 대화에는 영향을 주지 않는다. LINE 정책상 동시에 한 그룹에는 Official Account 하나만 참여할 수 있다. 1:1만 사용할 때는 그룹 참여 설정을 켤 필요 없다. [그룹 참여 공식 안내](https://developers.line.biz/en/docs/messaging-api/group-chats/).
+
+### 11. 연결 오류 점검표
+
+| 현상 | 확인할 내용 |
+| --- | --- |
+| 채널 링크에 접근 불가 / 채널이 안 보임 | 로그인 계정과 Provider·채널 관리 권한 확인. 현재 채널 대신 새 계정을 만들 필요가 있는지 먼저 구분 |
+| `localhost:8090/`에서 403 | 웹 화면이 없는 백엔드. `/actuator/health`로 상태 확인 |
+| Verify 401 / 403 | 해당 채널의 Secret인지, `qwen` 프로필인지, 프록시 경로·서명 전달이 맞는지 확인. 현재 보안 오류 처리상 서명 실패가 403으로 보일 수도 있음 |
+| Verify 시간 초과 / 502 | Java 8090 기동, Caddy 실행, 도메인·외부 HTTPS 접근, 프록시 포트 확인 |
+| Verify 성공인데 답장 없음 | Use webhook ON, 자동응답 OFF, 실제 Token, Qwen 8082 기동 확인. Verify만으로 Token 유효성이나 추론 성공을 검증하지는 않음 |
+| `stage=delivery`, `outcome=UNKNOWN` | LINE 발송 단계 실패. Access Token이 해당 채널의 유효한 값인지 먼저 확인. 이 로그만으로 원인을 단정할 수 없고 이미 실패한 답장을 자동 재전송하지 않으므로 수정 후 새 메시지 전송 |
+| 활성 프로필이 `mock` | 프로젝트 루트에서 실행했는지, `config/application.properties`와 `spring.profiles.active=qwen` 확인 |
+| 포트 8090 사용 중 | 기존 서버 창에서 Ctrl+C로 종료 후 한 번만 실행 |
+| 설정 파일을 바꿨는데 그대로 | Java를 재시작. LINE의 `/언어`, `/기본언어` 변경은 재시작 불필요 |
+| 다른 PC의 localhost가 열리지 않음 | localhost는 접속 중인 기기 자신을 뜻함. 공개 HTTPS 상태 주소를 사용하거나 SSH 창에서 로컬 확인 |
+
+### 12. 메시지 사용량과 완료 확인
+
+현재 코드는 Reply 응답을 기본으로 쓰고 Push는 꺼 두었다. Reply는 LINE 요금제의 월 메시지 건수에 포함되지 않으며 Push 등은 포함된다. 요금·포함 건수는 국가·지역·플랜에 따라 다르므로 계정의 플랜을 확인한다. 이는 서버의 처리량·대기시간 제한과 별개다. [LINE 요금·집계 공식 안내](https://developers.line.biz/en/docs/messaging-api/pricing/).
+
+최종 확인: 실제 설정 파일은 Git 제외, 서버는 qwen/8090, 로컬·HTTPS health는 UP, Verify는 Success, Use webhook은 ON, 자동응답은 OFF, 1:1 `/설정`·언어 변경·양방향 번역은 실제 답장으로 확인한다. 다음에 재설정할 때는 **같은 채널의 Secret·Token인지**부터 확인한다.
+
+### Docker / MariaDB로 실행하는 경우
+
+아래는 로컬 `config/application.properties` 방식과 별도의 배포 방법이다. Compose 설정은 `.env`를 사용하며 공개 진입 포트는 Nginx의 8080이다. 자세한 보충 안내는 [LINE 설정 가이드](docs/line-setup.md)를 참고한다.
 
 Compose는 DB와 백엔드를 외부 포트로 열지 않고 Nginx만 localhost:8080에 공개한다. 외부 LINE 웹훅은 신뢰할 수 있는 HTTPS reverse proxy/터널을 통해 전달해야 한다. Nginx 설정은 로컬 HTTP용이며 공인 TLS 인증서를 제공하지 않는다.
 
@@ -146,7 +314,7 @@ docker compose up --build -d
 docker compose logs -f backend
 ```
 
-`.env`는 Compose에서 읽는다. **Maven/Java 실행은 .env를 자동으로 읽지 않는다.** Windows 로컬 live 실행은 환경변수를 직접 설정한다 (이력에 남는 공유 터미널에 키를 입력하지 않는다).
+`.env`는 Compose에서 읽는다. **Maven/Java 실행은 .env를 자동으로 읽지 않는다.** 현재 Windows/Qwen 운영은 위 `config/application.properties` 방식을 사용한다. 아래는 별도 MariaDB와 외부 AI를 환경변수로 연결하는 대안 예시다 (이력에 남는 공유 터미널에 키를 입력하지 않는다).
 
 ```powershell
 $env:SPRING_PROFILES_ACTIVE="live"
